@@ -9,17 +9,33 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  CircularProgress,
 } from "@mui/material";
 
 import { IconListCheck, IconMail, IconUser } from "@tabler/icons-react";
 
+import { useAuth } from "@/hooks/useAuth";
+
 const Profile = () => {
+  const { logout, user } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [anchorEl2, setAnchorEl2] = useState(null);
   const handleClick2 = (event: any) => {
     setAnchorEl2(event.currentTarget);
   };
   const handleClose2 = () => {
     setAnchorEl2(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      handleClose2(); // Cerrar el menú
+    } catch (error) {
+      console.error('Error during logout:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -83,13 +99,13 @@ const Profile = () => {
         </MenuItem>
         <Box mt={1} py={1} px={2}>
           <Button
-            href="/authentication/login"
+            onClick={handleLogout}
             variant="outlined"
             color="primary"
-            component={Link}
             fullWidth
+            disabled={isLoggingOut}
           >
-            Logout
+            {isLoggingOut ? (<CircularProgress size={24} color="inherit" />) : ('Logout')}
           </Button>
         </Box>
       </Menu>

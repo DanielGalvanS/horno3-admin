@@ -55,7 +55,7 @@ const Login2 = () => {
                     color="textSecondary"
                     mb={1}
                   >
-                    Your Social Campaigns
+                    Panel de Administración
                   </Typography>
                 }
                 subtitle={
@@ -70,7 +70,7 @@ const Login2 = () => {
                       variant="h6"
                       fontWeight="500"
                     >
-                      New to Modernize?
+                      Don&apos;t have an account?
                     </Typography>
                     <Typography
                       component={Link}
