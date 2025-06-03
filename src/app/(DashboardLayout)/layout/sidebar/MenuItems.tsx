@@ -1,5 +1,8 @@
+import { Settings } from "@mui/icons-material";
 import {
   IconAperture,
+  IconBoxMultiple,
+  IconBuildingCircus,
   IconCopy,
   IconLayoutDashboard,
   IconLogin,
@@ -24,33 +27,33 @@ const Menuitems = [
   },
   {
     navlabel: true,
-    subheader: "UTILITIES",
+    subheader: "CONTENIDO DEL MUSEO",
   },
   {
     id: uniqueId(),
-    title: "Typography",
-    icon: IconTypography,
-    href: "/utilities/typography",
-  },
-  {
-    id: uniqueId(),
-    title: "Shadow",
+    title: "Secciones",
     icon: IconCopy,
+    href: "/utilities/SeccionesPage",
+  },
+  {
+    id: uniqueId(),
+    title: "Horarios Shows",
+    icon: IconBuildingCircus,
     href: "/utilities/shadow",
   },
   {
     navlabel: true,
-    subheader: "AUTH",
+    subheader: "EDUCACIÓN Y NOTICIAS",
   },
   {
     id: uniqueId(),
-    title: "Login",
+    title: "Noticias",
     icon: IconLogin,
     href: "/authentication/login",
   },
   {
     id: uniqueId(),
-    title: "Register",
+    title: "Actividades Educativas",
     icon: IconUserPlus,
     href: "/authentication/register",
   },
@@ -60,8 +63,8 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Icons",
-    icon: IconMoodHappy,
+    title: "Settings",
+    icon: Settings,
     href: "/icons",
   },
   {

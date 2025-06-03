@@ -11,7 +11,7 @@ import { IconPoint } from '@tabler/icons-react';
 import Link from "next/link";
 import Logo from "../shared/logo/Logo";
 import { usePathname } from "next/navigation";
-import { Upgrade } from "./Updrade";
+
 
 
 const renderMenuItems = (items: any, pathDirect: any) => {
@@ -79,7 +79,7 @@ const SidebarItems = () => {
 
         {renderMenuItems(Menuitems, pathDirect)}
         <Box px={2}>
-          <Upgrade />
+          
         </Box>
       </MUI_Sidebar>
 
