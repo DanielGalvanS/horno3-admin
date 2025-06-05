@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.3.0",
     "@ant-design/icons": "^6.0.0",
     "@emotion/cache": "^11.11.0",
     "@emotion/react": "^11.14.0",
@@ -22,6 +23,7 @@
     "@types/node": "^20.2.3",
     "antd": "^5.25.4",
     "apexcharts": "4.7.0",
+    "date-fns": "^4.1.0",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.12",
     "lodash": "^4.17.21",

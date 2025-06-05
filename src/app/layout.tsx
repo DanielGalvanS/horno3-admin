@@ -10,7 +10,8 @@ import { antdTheme } from '@/utils/theme/AntdTheme';
 import { AuthProvider } from '@/hooks/useAuth';
 import esES from 'antd/locale/es_ES';
 import 'antd/dist/reset.css'; 
-import './global.css'; 
+import './global.css';
+import '@/styles/dashboard.css'; // ✅ Solo agregar esta línea
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -39,7 +39,7 @@ const Menuitems = [
     id: uniqueId(),
     title: "Horarios Shows",
     icon: IconBuildingCircus,
-    href: "/utilities/shadow",
+    href: "/utilities/HorariosShows",
   },
   {
     navlabel: true,

@@ -1,18 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  images: { unoptimized: true },
+  // Configuración para Ant Design
+  transpilePackages: ['antd', '@ant-design/charts'],
   
-  // ✅ Optimizaciones para Vercel
+  // Optimización del bundle
   experimental: {
-    appDir: true,
+    optimizePackageImports: ['antd', '@ant-design/charts', 'date-fns'],
   },
   
-  // ✅ Output standalone para mejor performance
-  output: 'standalone',
+  // Si usas ESLint
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
   
-  // ✅ TrailingSlash para mejor routing
-  trailingSlash: false,
-}
+  // Configuración de imágenes (si las necesitas)
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
