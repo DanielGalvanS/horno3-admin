@@ -7,6 +7,7 @@ import {
   IconLayoutDashboard,
   IconLogin,
   IconMoodHappy,
+  IconNewSection,
   IconTypography,
   IconUserPlus,
 } from "@tabler/icons-react";
@@ -48,14 +49,8 @@ const Menuitems = [
   {
     id: uniqueId(),
     title: "Noticias",
-    icon: IconLogin,
-    href: "/authentication/login",
-  },
-  {
-    id: uniqueId(),
-    title: "Actividades Educativas",
-    icon: IconUserPlus,
-    href: "/authentication/register",
+    icon: IconNewSection,
+    href: "/admin/noticias",
   },
   {
     navlabel: true,
@@ -66,12 +61,6 @@ const Menuitems = [
     title: "Settings",
     icon: Settings,
     href: "/icons",
-  },
-  {
-    id: uniqueId(),
-    title: "Sample Page",
-    icon: IconAperture,
-    href: "/sample-page",
   },
 
 ];

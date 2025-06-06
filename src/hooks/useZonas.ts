@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { message } from 'antd';
-import { ZonaService } from '@/services/zonaService';
+import { ZonaService } from '@/services/zona.service';
 import type { Zona, CreateZonaData } from '@/types/zona';
 
 export const useZonas = () => {
