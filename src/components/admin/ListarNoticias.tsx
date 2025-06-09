@@ -25,7 +25,6 @@ import {
   SearchOutlined,
   ReadOutlined
 } from '@ant-design/icons';
-import { ZonaService } from '@/services/zona.service';
 import { CrearNoticiaForm } from './CrearNoticiaForm';
 import type { Noticia } from '@/types/noticia';
 import type { Zona } from '@/types/zona';
@@ -85,8 +84,18 @@ export const ListarNoticias: React.FC = () => {
 
   const loadZonas = async () => {
     try {
-      const data = await ZonaService.getAll();
-      setZonas(data);
+      console.log('Cargando zonas desde API...');
+      
+      const response = await fetch('/api/zonas');
+      const result = await response.json();
+      
+      console.log('Respuesta de zonas:', result);
+  
+      if (result.success) {
+        setZonas(result.data);
+      } else {
+        throw new Error(result.error || 'Error al cargar zonas');
+      }
     } catch (error: any) {
       console.error('Error al cargar zonas:', error);
       message.error('Error al cargar zonas: ' + error.message);
@@ -172,6 +181,13 @@ export const ListarNoticias: React.FC = () => {
             src={imagen_url}
             alt="Noticia"
             style={{ objectFit: 'cover', borderRadius: '4px' }}
+            preview={{
+                zIndex: 99999,
+                maskStyle: { 
+                  zIndex: 99998 
+                },
+                getContainer: () => document.body
+              }}
             fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RnG4W+FgYxN"
           />
         ) : (
@@ -279,14 +295,16 @@ export const ListarNoticias: React.FC = () => {
         {/* Filtros */}
         <div style={{ marginBottom: 16 }}>
           <Space wrap>
-            <Search
-              placeholder="Buscar noticias..."
-              allowClear
-              style={{ width: 300 }}
-              onSearch={setSearchText}
-              onChange={(e) => e.target.value === '' && setSearchText('')}
+            <Input
+            placeholder="Buscar noticias..."
+            allowClear
+            style={{ width: 250, height: 40, alignContent: 'center', alignItems: 'center' }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onPressEnter={(e) => setSearchText(e.currentTarget.value)}
+            prefix={<SearchOutlined />}
             />
-            
+                
             <Select
               placeholder="Filtrar por zona"
               style={{ width: 200 }}
@@ -322,8 +340,7 @@ export const ListarNoticias: React.FC = () => {
       {/* Modal para crear/editar/ver */}
       <Modal
         title={
-          modalMode === 'create' ? 'Nueva Noticia' :
-          modalMode === 'edit' ? 'Editar Noticia' : 'Detalles de la Noticia'
+          modalMode === 'view' ? 'Detalles de la noticia' : ''
         }
         open={modalVisible}
         onCancel={closeModal}
@@ -333,7 +350,7 @@ export const ListarNoticias: React.FC = () => {
           </Button>
         ] : null}
         width={modalMode === 'view' ? 600 : 800}
-        destroyOnClose
+        destroyOnHidden
       >
         {modalMode === 'view' && selectedNoticia ? (
           <div>
@@ -343,6 +360,13 @@ export const ListarNoticias: React.FC = () => {
                   src={selectedNoticia.imagen_url}
                   alt={selectedNoticia.titulo || 'Noticia'} // ✅ Arreglado
                   style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'cover' }}
+                  preview={{
+                    zIndex: 99999,
+                    maskStyle: { 
+                      zIndex: 99998 
+                    },
+                    getContainer: () => document.body
+                  }}
                 />
               </div>
             )}

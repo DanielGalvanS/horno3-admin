@@ -1,32 +1,46 @@
 // src/app/(DashboardLayout)/utilities/SeccionesPage/ZonaModal.tsx
 import React, { useState, useEffect } from 'react';
 import { Modal, Input, Select, Row, Col, InputNumber } from 'antd';
-import type { CreateZonaData, ValidationErrors, Zona } from '@/types/zona';
-import { validateZonaForm } from '@/utils/validation';
+import type { CreateZonaData, Zona } from '@/types/zona';
 
 const { TextArea } = Input;
 const { Option } = Select;
 
+// ✅ Definir ValidationErrors localmente para mantener compatibilidad
+interface ValidationErrors {
+  [key: string]: string | undefined;
+}
+
+// ✅ CreateZonaData local para mantener compatibilidad con el formulario actual
+interface LocalCreateZonaData {
+  nombre: string;
+  descripcion: string;
+  categorias: string; // String simple en lugar de array para el formulario
+  nivel: number;
+  duracion: number;
+  actividad: 'baja' | 'media' | 'alta';
+}
+
 interface ZonaModalProps {
-  isVisible: boolean; // ✅ Recibir estado como prop
-  editingZona: Zona | null; // ✅ Recibir zona en edición como prop
-  loading: boolean; // ✅ Recibir loading como prop
-  onClose: () => void; // ✅ Recibir función de cerrar como prop
-  setLoading: (loading: boolean) => void; // ✅ Recibir función de loading como prop
+  isVisible: boolean;
+  editingZona: Zona | null;
+  loading: boolean;
+  onClose: () => void;
+  setLoading: (loading: boolean) => void;
   onSave: (data: CreateZonaData) => Promise<boolean>;
   onUpdate: (id: string, data: CreateZonaData) => Promise<boolean>;
 }
 
 export const ZonaModal: React.FC<ZonaModalProps> = ({
-  isVisible, // ✅ Usar props en lugar de hook local
-  editingZona, // ✅ Usar props en lugar de hook local
-  loading, // ✅ Usar props en lugar de hook local
-  onClose, // ✅ Usar props en lugar de hook local
-  setLoading, // ✅ Usar props en lugar de hook local
+  isVisible,
+  editingZona,
+  loading,
+  onClose,
+  setLoading,
   onSave,
   onUpdate
 }) => {
-  const [formData, setFormData] = useState<CreateZonaData>({
+  const [formData, setFormData] = useState<LocalCreateZonaData>({
     nombre: '',
     descripcion: '',
     categorias: '',
@@ -58,16 +72,47 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
     return labels[value] || value;
   };
 
+  // ✅ Validación local simple (reemplaza validateZonaForm)
+  const validateZonaForm = (data: LocalCreateZonaData): ValidationErrors => {
+    const errors: ValidationErrors = {};
+
+    if (!data.nombre || data.nombre.trim().length < 3) {
+      errors.nombre = 'El nombre debe tener al menos 3 caracteres';
+    }
+
+    if (!data.descripcion || data.descripcion.trim().length < 10) {
+      errors.descripcion = 'La descripción debe tener al menos 10 caracteres';
+    }
+
+    if (!data.categorias) {
+      errors.categorias = 'La categoría es obligatoria';
+    }
+
+    if (!data.actividad) {
+      errors.actividad = 'La intensidad de actividad es obligatoria';
+    }
+
+    if (!data.nivel || data.nivel < 1 || data.nivel > 3) {
+      errors.nivel = 'El nivel debe ser entre 1 y 3';
+    }
+
+    if (!data.duracion || data.duracion < 5 || data.duracion > 180) {
+      errors.duracion = 'La duración debe ser entre 5 y 180 minutos';
+    }
+
+    return errors;
+  };
+
   // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {
-    if (isVisible) { // ✅ Usar prop en lugar de modal.isVisible
-      if (editingZona) { // ✅ Usar prop en lugar de modal.editingZona
+    if (isVisible) {
+      if (editingZona) {
         // Modo edición - cargar datos existentes
         setFormData({
           nombre: editingZona.nombre,
-          descripcion: editingZona.descripcion,
-          categorias: editingZona.categorias[0] || '',
-          nivel: editingZona.nivel,
+          descripcion: editingZona.descripcion || '',
+          categorias: editingZona.categorias?.[0] || '',
+          nivel: editingZona.nivel || 1,
           duracion: editingZona.duracion,
           actividad: editingZona.actividad
         });
@@ -84,9 +129,9 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
       }
       setFormErrors({});
     }
-  }, [isVisible, editingZona]); // ✅ Usar props en lugar de modal states
+  }, [isVisible, editingZona]);
 
-  const handleInputChange = (field: keyof CreateZonaData, value: string | number) => {
+  const handleInputChange = (field: keyof LocalCreateZonaData, value: string | number) => {
     setFormData({ ...formData, [field]: value });
     // Limpiar error del campo cuando el usuario comience a escribir
     if (formErrors[field]) {
@@ -102,36 +147,46 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
       return;
     }
 
-    setLoading(true); // ✅ Usar prop en lugar de modal.setLoading
+    setLoading(true);
 
     try {
+      // ✅ Convertir datos del formulario al formato de la API
+      const apiData: CreateZonaData = {
+        nombre: formData.nombre,
+        descripcion: formData.descripcion || null,
+        categorias: formData.categorias ? [formData.categorias] : null,
+        nivel: formData.nivel || null,
+        duracion: formData.duracion,
+        actividad: formData.actividad
+      };
+
       let success = false;
       
-      if (editingZona) { // ✅ Usar prop en lugar de modal.editingZona
-        success = await onUpdate(editingZona.id, formData);
+      if (editingZona) {
+        success = await onUpdate(editingZona.id, apiData);
       } else {
-        success = await onSave(formData);
+        success = await onSave(apiData);
       }
 
       if (success) {
-        onClose(); // ✅ Usar prop en lugar de modal.closeModal
+        onClose();
       }
     } catch (error) {
       console.error('Error in modal submit:', error);
     } finally {
-      setLoading(false); // ✅ Usar prop en lugar de modal.setLoading
+      setLoading(false);
     }
   };
 
   return (
     <Modal
-      title={editingZona ? 'Editar Sección' : 'Nueva Sección'} // ✅ Usar prop
-      open={isVisible} // ✅ Usar prop en lugar de modal.isVisible
+      title={editingZona ? 'Editar Sección' : 'Nueva Sección'}
+      open={isVisible}
       onOk={handleOk}
-      onCancel={onClose} // ✅ Usar prop en lugar de modal.closeModal
-      confirmLoading={loading} // ✅ Usar prop en lugar de modal.loading
+      onCancel={onClose}
+      confirmLoading={loading}
       width={600}
-      okText={editingZona ? 'Actualizar' : 'Crear'} // ✅ Usar prop
+      okText={editingZona ? 'Actualizar' : 'Crear'}
       cancelText="Cancelar"
       okButtonProps={{
         style: { 
@@ -217,7 +272,7 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
                 placeholder="Seleccionar intensidad"
                 style={{ width: '100%' }}
                 value={formData.actividad || undefined}
-                onChange={(value: string) => handleInputChange('actividad', value)}
+                onChange={(value: 'baja' | 'media' | 'alta') => handleInputChange('actividad', value)}
                 status={formErrors.actividad ? 'error' : ''}
               >
                 {actividadOptions.map(actividad => (

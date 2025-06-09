@@ -9,7 +9,7 @@ interface SeccionesTableProps {
   zonas: Zona[];
   loading: boolean;
   onDelete: (id: string) => Promise<boolean>;
-  onEditClick: (zona: Zona) => void; // ✅ Nueva prop para editar
+  onEditClick: (zona: Zona) => void;
   searchText?: string;
 }
 
@@ -17,7 +17,7 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
   zonas,
   loading,
   onDelete,
-  onEditClick, // ✅ Recibir función como prop
+  onEditClick,
   searchText = ''
 }) => {
   const [filteredData, setFilteredData] = useState<Zona[]>([]);
@@ -45,14 +45,14 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
     return labels[value] || value;
   };
 
-  // Filtrar datos basado en búsqueda
+  // ✅ Filtrar datos basado en búsqueda - Con verificaciones null
   useEffect(() => {
     const filtered = zonas.filter(item =>
       item.nombre.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.descripcion.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.categorias.some(cat => 
+      (item.descripcion?.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
+      (item.categorias?.some(cat => 
         cat.toLowerCase().includes(searchText.toLowerCase())
-      )
+      ) ?? false)
     );
     setFilteredData(filtered);
   }, [zonas, searchText]);
@@ -83,9 +83,9 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       ellipsis: {
         showTitle: false,
       },
-      render: (text: string) => (
-        <Tooltip placement="topLeft" title={text}>
-          {text}
+      render: (text: string | null) => (
+        <Tooltip placement="topLeft" title={text || 'Sin descripción'}>
+          {text || 'Sin descripción'}
         </Tooltip>
       ),
     },
@@ -94,8 +94,8 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       dataIndex: 'categorias',
       key: 'categorias',
       filters: categoriaOptions.map(cat => ({ text: cat, value: cat })),
-      onFilter: (value, record) => record.categorias.includes(value as string),
-      render: (categorias: string[]) => (
+      onFilter: (value, record) => record.categorias?.includes(value as string) ?? false,
+      render: (categorias: string[] | null) => (
         <Tag color="blue">{categorias?.[0] || 'Sin categoría'}</Tag>
       )
     },
@@ -103,18 +103,22 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       title: 'Nivel',
       dataIndex: 'nivel',
       key: 'nivel',
-      sorter: (a, b) => a.nivel - b.nivel,
+      sorter: (a, b) => (a.nivel || 0) - (b.nivel || 0),
       filters: [
         { text: 'Nivel 1', value: 1 },
         { text: 'Nivel 2', value: 2 },
         { text: 'Nivel 3', value: 3 },
       ],
       onFilter: (value, record) => record.nivel === value,
-      render: (nivel: number) => (
-        <Tag color={nivel === 1 ? 'green' : nivel === 2 ? 'orange' : 'red'}>
-          Nivel {nivel}
-        </Tag>
-      )
+      render: (nivel: number | null) => {
+        if (!nivel) return <Tag color="default">Sin nivel</Tag>;
+        const color = nivel === 1 ? 'green' : nivel === 2 ? 'orange' : 'red';
+        return (
+          <Tag color={color}>
+            Nivel {nivel}
+          </Tag>
+        );
+      }
     },
     {
       title: 'Duración (min)',
@@ -145,32 +149,34 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
     {
       title: 'Acciones',
       key: 'actions',
-      fixed: 'right',
       width: 120,
+      className: 'actions-column',
       render: (_, record: Zona) => (
         <Space>
           <Tooltip title="Editar">
             <Button
+              type='text'
               icon={<EditOutlined />}
-              size="small"
-              onClick={() => onEditClick(record)} // ✅ Usar prop en lugar de hook local
+              onClick={() => onEditClick(record)}
               disabled={deletingId === record.id}
             />
           </Tooltip>
           <Tooltip title="Eliminar">
-            <Popconfirm
-              title="¿Estás seguro de eliminar esta sección?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Sí"
-              cancelText="No"
-              disabled={deletingId === record.id}
-            >
+          <Popconfirm
+          title="¿Estás seguro de eliminar esta sección?"
+          description="Esta acción no se puede deshacer."
+          onConfirm={() => handleDelete(record.id)}
+          okText="Sí, eliminar"
+          cancelText="Cancelar"
+          okType="danger"
+          disabled={deletingId === record.id}
+        >
               <Button
-                icon={<DeleteOutlined />}
-                size="small"
-                loading={deletingId === record.id}
-                disabled={deletingId !== null && deletingId !== record.id}
-              />
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              title="Eliminar"
+            />
             </Popconfirm>
           </Tooltip>
         </Space>

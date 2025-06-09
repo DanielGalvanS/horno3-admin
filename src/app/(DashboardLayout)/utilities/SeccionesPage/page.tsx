@@ -1,20 +1,166 @@
 // src/app/(DashboardLayout)/utilities/SeccionesPage/page.tsx
 "use client";
 
-import React, { useState } from 'react';
-import { Card } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, message } from 'antd';
 import { useAuth } from '@/hooks/useAuth';
-import { useZonas } from '@/hooks/useZonas';
-import { useZonaModal } from '@/hooks/useZonaModal';
 import { SeccionesTable } from './SeccionesTable';
 import { SeccionesHeader } from './SeccionesHeader';
 import { ZonaModal } from './ZonaModal';
+import type { Zona, CreateZonaData } from '@/types/zona';
 
 const SeccionesPage: React.FC = () => {
   const { user } = useAuth();
-  const zonas = useZonas();
-  const modal = useZonaModal();
+  
+  // ✅ Estado usando useState (como en noticias) en lugar de hooks
+  const [zonas, setZonas] = useState<Zona[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
+  
+  // ✅ Estado del modal (como en noticias) en lugar de useZonaModal
+  const [isVisible, setIsVisible] = useState(false);
+  const [editingZona, setEditingZona] = useState<Zona | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  // ✅ Cargar zonas usando API directa (como en noticias)
+  const fetchZonas = async () => {
+    try {
+      setLoading(true);
+      console.log('Cargando zonas desde API...');
+      
+      const response = await fetch('/api/zonas');
+      const result = await response.json();
+      
+      console.log('Respuesta de zonas:', result);
+
+      if (result.success) {
+        setZonas(result.data);
+      } else {
+        throw new Error(result.error || 'Error al cargar zonas');
+      }
+    } catch (error: any) {
+      console.error('Error al cargar zonas:', error);
+      message.error(`Error al cargar secciones: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Crear zona usando API directa (como en noticias)
+  const createZona = async (zonaData: CreateZonaData): Promise<boolean> => {
+    try {
+      console.log('Creando zona...');
+      
+      const response = await fetch('/api/zonas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(zonaData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `Error ${response.status}`);
+      }
+
+      if (result.success) {
+        // Agregar la nueva zona al estado
+        setZonas(prev => [...prev, result.data]);
+        message.success('Sección creada correctamente');
+        return true;
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
+    } catch (error: any) {
+      console.error('Error al crear zona:', error);
+      message.error(`Error al crear sección: ${error.message}`);
+      return false;
+    }
+  };
+
+  // ✅ Actualizar zona usando API directa (como en noticias)
+  const updateZona = async (id: string, zonaData: CreateZonaData): Promise<boolean> => {
+    try {
+      console.log(`Actualizando zona ${id}...`);
+      
+      const response = await fetch(`/api/zonas/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(zonaData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `Error ${response.status}`);
+      }
+
+      if (result.success) {
+        // Actualizar la zona en el estado
+        setZonas(prev => prev.map(zona => zona.id === id ? result.data : zona));
+        message.success('Sección actualizada correctamente');
+        return true;
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
+    } catch (error: any) {
+      console.error('Error al actualizar zona:', error);
+      message.error(`Error al actualizar sección: ${error.message}`);
+      return false;
+    }
+  };
+
+  // ✅ Eliminar zona usando API directa (como en noticias)
+  const deleteZona = async (id: string): Promise<boolean> => {
+    try {
+      console.log(`Eliminando zona ${id}...`);
+      
+      const response = await fetch(`/api/zonas/${id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Remover la zona del estado
+        setZonas(prev => prev.filter(zona => zona.id !== id));
+        message.success('Sección eliminada correctamente');
+        return true;
+      } else {
+        throw new Error(result.error || 'Error al eliminar');
+      }
+    } catch (error: any) {
+      console.error('Error al eliminar zona:', error);
+      message.error(`Error al eliminar sección: ${error.message}`);
+      return false;
+    }
+  };
+
+  // ✅ Funciones del modal (como en noticias)
+  const openCreateModal = () => {
+    setEditingZona(null);
+    setIsVisible(true);
+  };
+
+  const openEditModal = (zona: Zona) => {
+    setEditingZona(zona);
+    setIsVisible(true);
+  };
+
+  const closeModal = () => {
+    setIsVisible(false);
+    setEditingZona(null);
+    setModalLoading(false);
+  };
+
+  // ✅ Cargar datos al montar el componente
+  useEffect(() => {
+    fetchZonas();
+  }, []);
 
   if (!user) {
     return (
@@ -27,31 +173,30 @@ const SeccionesPage: React.FC = () => {
 
   return (
     <>
-      {zonas.contextHolder}
       <div style={{ padding: '24px' }}>
         <Card>
           <SeccionesHeader 
-            onRefresh={zonas.fetchZonas}
-            loading={zonas.loading}
+            onRefresh={fetchZonas}
+            loading={loading}
             onSearch={setSearchText}
-            onCreateClick={modal.openCreateModal}
+            onCreateClick={openCreateModal}
           />
           <SeccionesTable 
-            zonas={zonas.zonas}
-            loading={zonas.loading}
-            onDelete={zonas.deleteZona}
-            onEditClick={modal.openEditModal}
+            zonas={zonas}
+            loading={loading}
+            onDelete={deleteZona}
+            onEditClick={openEditModal}
             searchText={searchText}
           />
         </Card>
         <ZonaModal
-          isVisible={modal.isVisible}
-          editingZona={modal.editingZona}
-          loading={modal.loading}
-          onClose={modal.closeModal}
-          onSave={zonas.createZona}
-          onUpdate={zonas.updateZona}
-          setLoading={modal.setLoading}
+          isVisible={isVisible}
+          editingZona={editingZona}
+          loading={modalLoading}
+          onClose={closeModal}
+          onSave={createZona}
+          onUpdate={updateZona}
+          setLoading={setModalLoading}
         />
       </div>
     </>

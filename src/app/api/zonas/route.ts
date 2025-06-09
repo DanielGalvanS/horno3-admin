@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
       const todasLasZonas = await ZonaService.getAll();
       zonas = todasLasZonas.filter(zona => 
         zona.nombre.toLowerCase().includes(search.toLowerCase()) ||
-        zona.descripcion?.toLowerCase().includes(search.toLowerCase()) ||
-        zona.categorias?.some(cat => cat.toLowerCase().includes(search.toLowerCase()))
+        (zona.descripcion?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+        (zona.categorias?.some(cat => cat.toLowerCase().includes(search.toLowerCase())) ?? false)
       );
     } else if (actividad) {
       // Filtrar por actividad

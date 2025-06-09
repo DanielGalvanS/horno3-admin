@@ -9,10 +9,10 @@ import {
   Select, 
   Upload, 
   Button, 
-  Card, 
   message, 
   Space,
-  Image
+  Image,
+  Divider
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -21,13 +21,11 @@ import {
   DeleteOutlined
 } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
-// ✅ Import corregido - con punto
-import { ZonaService } from '@/services/zona.service';
 import type { Noticia, CreateNoticiaData } from '@/types/noticia';
 import type { Zona } from '@/types/zona';
 
 interface CrearNoticiaFormProps {
-  noticia?: Noticia; // Para modo edición
+  noticia?: Noticia;
   onSuccess?: (noticia: Noticia) => void;
   onCancel?: () => void;
 }
@@ -47,16 +45,6 @@ export const CrearNoticiaForm: React.FC<CrearNoticiaFormProps> = ({
 
   // Cargar zonas al montar el componente
   useEffect(() => {
-    const loadZonas = async () => {
-      try {
-        const zonasData = await ZonaService.getAll();
-        setZonas(zonasData);
-      } catch (error) {
-        console.error('Error al cargar zonas:', error);
-        message.error('Error al cargar las zonas');
-      }
-    };
-
     loadZonas();
   }, []);
 
@@ -74,6 +62,26 @@ export const CrearNoticiaForm: React.FC<CrearNoticiaFormProps> = ({
       }
     }
   }, [isEditing, noticia, form]);
+
+  const loadZonas = async () => {
+    try {
+      console.log('Cargando zonas desde API...');
+      
+      const response = await fetch('/api/zonas');
+      const result = await response.json();
+      
+      console.log('Respuesta de zonas:', result);
+  
+      if (result.success) {
+        setZonas(result.data);
+      } else {
+        throw new Error(result.error || 'Error al cargar zonas');
+      }
+    } catch (error: any) {
+      console.error('Error al cargar zonas:', error);
+      message.error('Error al cargar zonas: ' + error.message);
+    }
+  };
 
   // Manejar cambio de imagen
   const handleImageChange: UploadProps['onChange'] = (info) => {
@@ -188,15 +196,22 @@ export const CrearNoticiaForm: React.FC<CrearNoticiaFormProps> = ({
   );
 
   return (
-    <Card 
-      title={
-        <Space>
-          <PictureOutlined style={{ color: '#FF6B35' }} />
-          <span>{isEditing ? 'Editar Noticia' : 'Crear Nueva Noticia'}</span>
-        </Space>
-      }
-      style={{ maxWidth: 800, margin: '0 auto' }}
-    >
+    <div>
+      {/* Título con icono como header simple */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        marginBottom: 24, 
+        gap: 8 
+      }}>
+        <PictureOutlined style={{ color: '#FF6B35', fontSize: 20 }} />
+        <span style={{ fontSize: 16, fontWeight: 600 }}>
+          {isEditing ? 'Editar Noticia' : 'Crear Nueva Noticia'}
+        </span>
+      </div>
+
+      <Divider />
+
       <Form
         form={form}
         layout="vertical"
@@ -256,7 +271,16 @@ export const CrearNoticiaForm: React.FC<CrearNoticiaFormProps> = ({
         <Form.Item
           name="imagen"
           label="Imagen de la noticia"
-          extra="Formatos admitidos: JPG, PNG, WebP. Tamaño máximo: 5MB"
+          extra={
+            <div style={{ 
+              paddingTop: '8px', 
+              paddingBottom: '4px',
+              color: '#666',
+              fontSize: '14px' 
+            }}>
+              Formatos admitidos: JPG, PNG, WebP. Tamaño máximo: 5MB
+            </div>
+          }
         >
           <div>
             {imageUrl ? (
@@ -300,18 +324,10 @@ export const CrearNoticiaForm: React.FC<CrearNoticiaFormProps> = ({
           </div>
         </Form.Item>
 
-        <Form.Item style={{ marginTop: '32px', marginBottom: 0 }}>
-          <Space>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={loading}
-              size="large"
-              icon={<SaveOutlined />}
-            >
-              {isEditing ? 'Actualizar Noticia' : 'Crear Noticia'}
-            </Button>
-            
+        <Divider />
+
+        <Form.Item style={{ marginBottom: 0 }}>
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
             {onCancel && (
               <Button 
                 size="large" 
@@ -321,9 +337,18 @@ export const CrearNoticiaForm: React.FC<CrearNoticiaFormProps> = ({
                 Cancelar
               </Button>
             )}
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={loading}
+              size="large"
+              icon={<SaveOutlined />}
+            >
+              {isEditing ? 'Actualizar Noticia' : 'Crear Noticia'}
+            </Button>
           </Space>
         </Form.Item>
       </Form>
-    </Card>
+    </div>
   );
 };

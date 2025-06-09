@@ -291,6 +291,21 @@ p, span, div {
 .ant-date-picker-dropdown {
   z-index: 10050 !important;
 }
+
+/* Mantener iconos visibles en hover de fila */
+.ant-table-tbody > tr:hover > td:last-child .ant-btn,
+.ant-table-tbody > tr:hover > td:last-child .ant-btn .anticon,
+.ant-table-tbody > tr:hover > td:last-child .anticon,
+.ant-table-tbody > tr:hover > td:last-child svg,
+.ant-table-tbody > tr:hover > td:last-child * {
+  opacity: 1 !important;
+}
+
+/* Mantener colores normales de los iconos */
+.ant-table-tbody > tr:hover > td:last-child .ant-btn .anticon {
+  color: rgb(0, 0, 0) !important; /* Color normal de iconos */
+}
+
 @media (max-width: 768px) {
   .ant-table {
     font-size: 12px !important;
