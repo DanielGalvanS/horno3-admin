@@ -12,11 +12,11 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const actividad = searchParams.get('actividad');
     const nivel = searchParams.get('nivel');
+    const activo = searchParams.get('activo'); // 🆕 Filtro por estado activo
 
     let zonas;
 
     if (search) {
-      // Si hay búsqueda, filtrar por nombre, descripción o categorías
       const todasLasZonas = await ZonaService.getAll();
       zonas = todasLasZonas.filter(zona => 
         zona.nombre.toLowerCase().includes(search.toLowerCase()) ||
@@ -24,15 +24,15 @@ export async function GET(request: NextRequest) {
         (zona.categorias?.some(cat => cat.toLowerCase().includes(search.toLowerCase())) ?? false)
       );
     } else if (actividad) {
-      // Filtrar por actividad
       const todasLasZonas = await ZonaService.getAll();
       zonas = todasLasZonas.filter(zona => zona.actividad === actividad);
     } else if (nivel) {
-      // Filtrar por nivel
       const todasLasZonas = await ZonaService.getAll();
       zonas = todasLasZonas.filter(zona => zona.nivel === parseInt(nivel));
+    } else if (activo !== null) { // 🆕 Filtro por estado activo
+      const todasLasZonas = await ZonaService.getAll();
+      zonas = todasLasZonas.filter(zona => zona.activo === (activo === 'true'));
     } else {
-      // Obtener todas las zonas
       zonas = await ZonaService.getAll();
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     
-    const { nombre, descripcion, categorias, nivel, duracion, actividad } = body;
+    const { nombre, descripcion, categorias, nivel, duracion, actividad, activo } = body; // 🆕 Incluir activo
 
     console.log('Datos recibidos:', {
       nombre,
@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
       categorias,
       nivel,
       duracion,
-      actividad
+      actividad,
+      activo // 🆕 Log del campo activo
     });
 
     // Validaciones básicas
@@ -122,7 +123,8 @@ export async function POST(request: NextRequest) {
       categorias: categorias || null,
       nivel: nivel || null,
       duracion,
-      actividad
+      actividad,
+      activo: activo ?? true // 🆕 Por defecto true si no se especifica
     };
 
     console.log('Llamando a ZonaService.create...');

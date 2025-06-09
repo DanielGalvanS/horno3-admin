@@ -8,10 +8,12 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { museoHorno3Theme } from '@/utils/theme/DefaultColors';
 import { antdTheme } from '@/utils/theme/AntdTheme';
 import { AuthProvider } from '@/hooks/useAuth';
+import { ActividadesProvider } from '@/contexts/ActividadesContext';
 import esES from 'antd/locale/es_ES';
 import 'antd/dist/reset.css'; 
 import './global.css';
 import '@/styles/dashboard.css'; // ✅ Solo agregar esta línea
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,7 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           >
             <CssBaseline />
             <AuthProvider> 
+              <ActividadesProvider>
               {children}
+              </ActividadesProvider>
             </AuthProvider> 
           </ConfigProvider>
         </ThemeProvider>

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 }
 
-// PUT /api/zonas/[id] - Actualizar zona
+// PUT /api/zonas/[id] - Actualizar zona completa
 export async function PUT(request: NextRequest, { params }: Params) {
   try {
     console.log(`=== PUT /api/zonas/${params.id} ===`);
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     
     const updateData: any = {};
     
-    const { nombre, descripcion, categorias, nivel, duracion, actividad } = body;
+    const { nombre, descripcion, categorias, nivel, duracion, actividad, activo } = body; // 🆕 Incluir activo
 
     // Solo actualizar campos que se envían
     if (nombre !== undefined) updateData.nombre = nombre;
@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (nivel !== undefined) updateData.nivel = nivel || null;
     if (duracion !== undefined) updateData.duracion = duracion;
     if (actividad !== undefined) updateData.actividad = actividad;
+    if (activo !== undefined) updateData.activo = activo; // 🆕 Actualizar estado activo
 
     console.log('Datos a actualizar:', updateData);
 
@@ -95,6 +96,17 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
+    // 🆕 Validación para el campo activo
+    if (updateData.activo !== undefined && typeof updateData.activo !== 'boolean') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'El campo activo debe ser true o false' 
+        },
+        { status: 400 }
+      );
+    }
+
     const zona = await ZonaService.update(params.id, updateData);
 
     return NextResponse.json({
@@ -109,6 +121,48 @@ export async function PUT(request: NextRequest, { params }: Params) {
       { 
         success: false, 
         error: error.message || 'Error al actualizar la zona' 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// 🆕 PATCH /api/zonas/[id] - Toggle estado activo (para el switch)
+export async function PATCH(request: NextRequest, { params }: Params) {
+  try {
+    console.log(`=== PATCH /api/zonas/${params.id} ===`);
+    
+    const body = await request.json();
+    const { activo } = body;
+
+    // Validar que se envíe el campo activo
+    if (activo === undefined || typeof activo !== 'boolean') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'El campo activo es requerido y debe ser true o false' 
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Cambiando estado activo de zona ${params.id} a: ${activo}`);
+
+    // Solo actualizar el campo activo
+    const zona = await ZonaService.update(params.id, { activo });
+
+    return NextResponse.json({
+      success: true,
+      data: zona,
+      message: `Zona ${activo ? 'activada' : 'desactivada'} exitosamente`
+    });
+
+  } catch (error: any) {
+    console.error(`Error en PATCH /api/zonas/${params.id}:`, error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error.message || 'Error al cambiar estado de la zona' 
       },
       { status: 500 }
     );

@@ -31,7 +31,7 @@ const Profile = () => {
     try {
       setIsLoggingOut(true);
       await logout();
-      handleClose2(); // Cerrar el menú
+      handleClose2(); 
     } catch (error) {
       console.error('Error during logout:', error);
       setIsLoggingOut(false);

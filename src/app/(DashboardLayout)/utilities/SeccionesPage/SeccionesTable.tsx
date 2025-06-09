@@ -1,6 +1,6 @@
 // src/app/(DashboardLayout)/utilities/SeccionesPage/SeccionesTable.tsx
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Tag, Tooltip, Popconfirm } from 'antd';
+import { Table, Button, Space, Tag, Tooltip, Popconfirm, Switch } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Zona } from '@/types/zona';
@@ -10,6 +10,7 @@ interface SeccionesTableProps {
   loading: boolean;
   onDelete: (id: string) => Promise<boolean>;
   onEditClick: (zona: Zona) => void;
+  onToggleActive?: (id: string, activo: boolean) => Promise<boolean>; // 🆕 Nueva función
   searchText?: string;
 }
 
@@ -18,10 +19,12 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
   loading,
   onDelete,
   onEditClick,
+  onToggleActive, // 🆕 Nueva prop
   searchText = ''
 }) => {
   const [filteredData, setFilteredData] = useState<Zona[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null); // 🆕 Para el switch
 
   // Opciones para los filtros
   const categoriaOptions = [
@@ -68,13 +71,62 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
     }
   };
 
+  // 🆕 Función para cambiar estado activo
+  const handleToggleActive = async (id: string, currentActivo: boolean) => {
+    if (!onToggleActive) return;
+    
+    setTogglingId(id);
+    try {
+      await onToggleActive(id, !currentActivo);
+    } catch (error) {
+      console.error('Error toggling zona active state:', error);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const columns: ColumnsType<Zona> = [
+    {
+      title: 'Estado',
+      dataIndex: 'activo',
+      key: 'activo',
+      width: 80,
+      filters: [
+        { text: 'Activo', value: true },
+        { text: 'Inactivo', value: false },
+      ],
+      onFilter: (value, record) => record.activo === value,
+      render: (activo: boolean, record: Zona) => (
+        <Tooltip title={activo ? 'Activa - Click para desactivar' : 'Inactiva - Click para activar'}>
+          <Switch
+            checked={activo}
+            loading={togglingId === record.id}
+            onChange={() => handleToggleActive(record.id, activo)}
+            disabled={!onToggleActive || togglingId === record.id}
+            size="small"
+          />
+        </Tooltip>
+      )
+    },
     {
       title: 'Nombre',
       dataIndex: 'nombre',
       key: 'nombre',
       sorter: (a, b) => a.nombre.localeCompare(b.nombre),
-      render: (text: string) => <span style={{ fontWeight: 'bold' }}>{text}</span>
+      render: (text: string, record: Zona) => (
+        <span style={{ 
+          fontWeight: 'bold',
+          opacity: record.activo ? 1 : 0.6, // 🆕 Opacidad para inactivos
+          textDecoration: record.activo ? 'none' : 'line-through' // 🆕 Tachado para inactivos
+        }}>
+          {text}
+          {!record.activo && (
+            <Tag color="default" style={{ marginLeft: 8 }}>
+              Inactiva
+            </Tag>
+          )}
+        </span>
+      )
     },
     {
       title: 'Descripción',
@@ -83,9 +135,11 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       ellipsis: {
         showTitle: false,
       },
-      render: (text: string | null) => (
+      render: (text: string | null, record: Zona) => (
         <Tooltip placement="topLeft" title={text || 'Sin descripción'}>
-          {text || 'Sin descripción'}
+          <span style={{ opacity: record.activo ? 1 : 0.6 }}>
+            {text || 'Sin descripción'}
+          </span>
         </Tooltip>
       ),
     },
@@ -95,8 +149,13 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       key: 'categorias',
       filters: categoriaOptions.map(cat => ({ text: cat, value: cat })),
       onFilter: (value, record) => record.categorias?.includes(value as string) ?? false,
-      render: (categorias: string[] | null) => (
-        <Tag color="blue">{categorias?.[0] || 'Sin categoría'}</Tag>
+      render: (categorias: string[] | null, record: Zona) => (
+        <Tag 
+          color={record.activo ? "blue" : "default"}
+          style={{ opacity: record.activo ? 1 : 0.6 }}
+        >
+          {categorias?.[0] || 'Sin categoría'}
+        </Tag>
       )
     },
     {
@@ -110,11 +169,16 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
         { text: 'Nivel 3', value: 3 },
       ],
       onFilter: (value, record) => record.nivel === value,
-      render: (nivel: number | null) => {
+      render: (nivel: number | null, record: Zona) => {
         if (!nivel) return <Tag color="default">Sin nivel</Tag>;
-        const color = nivel === 1 ? 'green' : nivel === 2 ? 'orange' : 'red';
+        const color = record.activo 
+          ? (nivel === 1 ? 'green' : nivel === 2 ? 'orange' : 'red')
+          : 'default';
         return (
-          <Tag color={color}>
+          <Tag 
+            color={color}
+            style={{ opacity: record.activo ? 1 : 0.6 }}
+          >
             Nivel {nivel}
           </Tag>
         );
@@ -125,7 +189,11 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       dataIndex: 'duracion',
       key: 'duracion',
       sorter: (a, b) => a.duracion - b.duracion,
-      render: (duracion: number) => `${duracion} min`
+      render: (duracion: number, record: Zona) => (
+        <span style={{ opacity: record.activo ? 1 : 0.6 }}>
+          {duracion} min
+        </span>
+      )
     },
     {
       title: 'Intensidad',
@@ -133,14 +201,17 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       key: 'actividad',
       filters: actividadOptions.map(act => ({ text: getActividadLabel(act), value: act })),
       onFilter: (value, record) => record.actividad === value,
-      render: (actividad: string) => {
+      render: (actividad: string, record: Zona) => {
         const colorMap: { [key: string]: string } = {
-          'baja': 'green',
-          'media': 'orange', 
-          'alta': 'red'
+          'baja': record.activo ? 'green' : 'default',
+          'media': record.activo ? 'orange' : 'default', 
+          'alta': record.activo ? 'red' : 'default'
         };
         return (
-          <Tag color={colorMap[actividad] || 'purple'}>
+          <Tag 
+            color={colorMap[actividad] || 'purple'}
+            style={{ opacity: record.activo ? 1 : 0.6 }}
+          >
             {getActividadLabel(actividad)}
           </Tag>
         );
@@ -158,7 +229,7 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
               type='text'
               icon={<EditOutlined />}
               onClick={() => onEditClick(record)}
-              disabled={deletingId === record.id}
+              disabled={deletingId === record.id || togglingId === record.id}
             />
           </Tooltip>
           <Tooltip title="Eliminar">
@@ -169,13 +240,14 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
           okText="Sí, eliminar"
           cancelText="Cancelar"
           okType="danger"
-          disabled={deletingId === record.id}
+          disabled={deletingId === record.id || togglingId === record.id}
         >
               <Button
               type="text"
               danger
               icon={<DeleteOutlined />}
               title="Eliminar"
+              disabled={deletingId === record.id || togglingId === record.id}
             />
             </Popconfirm>
           </Tooltip>
@@ -198,6 +270,8 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
         showTotal: (total, range) => 
           `${range[0]}-${range[1]} de ${total} secciones`,
       }}
+      // 🆕 Estilo para filas inactivas
+      rowClassName={(record) => record.activo ? '' : 'inactive-row'}
     />
   );
 };

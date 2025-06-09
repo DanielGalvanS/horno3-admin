@@ -9,6 +9,7 @@ export interface Zona {
     nivel: number | null
     duracion: number
     actividad: 'baja' | 'media' | 'alta'
+    activo: boolean
   }
   
   // Tipo para crear nuevas zonas
@@ -19,6 +20,7 @@ export interface Zona {
     nivel?: number | null
     duracion: number
     actividad: 'baja' | 'media' | 'alta'
+    activo: boolean
   }
 
   export interface ValidationErrors {

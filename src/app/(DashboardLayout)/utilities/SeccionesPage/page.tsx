@@ -140,6 +140,33 @@ const SeccionesPage: React.FC = () => {
     }
   };
 
+// En tu página principal de secciones
+const handleToggleActive = async (id: string, activo: boolean): Promise<boolean> => {
+  try {
+    const response = await fetch(`/api/zonas/${id}`, {
+      method: 'PATCH', // 🆕 Usar PATCH en lugar de PUT
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(result.message); // Log del mensaje de éxito
+      
+      // Recargar datos
+      await fetchZonas(); // Tu función para recargar las zonas
+      return true;
+    } else {
+      const error = await response.json();
+      console.error('Error:', error.error);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error updating zona active state:', error);
+    return false;
+  }
+};
+
   // ✅ Funciones del modal (como en noticias)
   const openCreateModal = () => {
     setEditingZona(null);
@@ -186,6 +213,7 @@ const SeccionesPage: React.FC = () => {
             loading={loading}
             onDelete={deleteZona}
             onEditClick={openEditModal}
+            onToggleActive={handleToggleActive}
             searchText={searchText}
           />
         </Card>

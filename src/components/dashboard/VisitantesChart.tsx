@@ -1,4 +1,4 @@
-// src/components/dashboard/VisitantesChart.tsx - VERSIÓN QUE FUNCIONABA BIEN ✨
+// src/components/dashboard/VisitantesChart.tsx - CON DATOS REALES ✨
 'use client';
 
 import React from 'react';
@@ -8,27 +8,52 @@ import { Line } from '@ant-design/charts';
 const { Text } = Typography;
 
 interface VisitantesChartProps {
-  data: Array<{ fecha: string; visitantes: number; dia: string }>;
+  data: Array<{ fecha: string; visitantes: number; dia: string; duracionPromedio?: number }>;
   loading?: boolean;
+  // 🔥 Props adicionales para datos reales
+  estadisticas?: {
+    total: number;
+    promedio: number;
+    maximo: number;
+    minimo: number;
+  };
+  insight?: string;
 }
 
 export const VisitantesChart: React.FC<VisitantesChartProps> = ({
   data,
-  loading = false
+  loading = false,
+  estadisticas,
+  insight
 }) => {
   if (loading) {
     return <Card title="Visitantes por Día" className="chart-card" loading={loading} />;
   }
 
-  const totalVisitantes = data.reduce((sum, item) => sum + item.visitantes, 0);
-  const promedioVisitantes = Math.round(totalVisitantes / data.length);
-  const maxVisitantes = Math.max(...data.map(item => item.visitantes));
-  const minVisitantes = Math.min(...data.map(item => item.visitantes));
+  // 🎯 Usar estadísticas reales si están disponibles, sino calcular
+  const stats = estadisticas || {
+    total: data.reduce((sum, item) => sum + item.visitantes, 0),
+    promedio: Math.round(data.reduce((sum, item) => sum + item.visitantes, 0) / Math.max(data.length, 1)),
+    maximo: Math.max(...data.map(item => item.visitantes), 0),
+    minimo: Math.min(...data.map(item => item.visitantes), 0)
+  };
 
-  // 🎨 CONFIGURACIÓN QUE FUNCIONABA BIEN
+  // 🔥 Insight real o calculado
+  const insightFinal = insight || (() => {
+    if (data.length === 0) return 'No hay datos de visitantes disponibles';
+    
+    const maxVisitantes = stats.maximo;
+    const diaMaxVisitantes = data.find(d => d.visitantes === maxVisitantes);
+    
+    return maxVisitantes === data[data.length - 1]?.visitantes 
+      ? `El último día registró el mayor número de visitantes (${maxVisitantes} personas)`
+      : `El día más popular fue ${diaMaxVisitantes?.dia || 'N/A'} con ${maxVisitantes} visitantes`;
+  })();
+
+  // 🎨 Configuración del gráfico (manteniendo tu estilo)
   const config = {
     data,
-    height: 300, // ✅ Altura original que funcionaba
+    height: 300,
     xField: 'fecha',
     yField: 'visitantes',
     smooth: true,
@@ -105,9 +130,6 @@ export const VisitantesChart: React.FC<VisitantesChartProps> = ({
         },
       },
     },
-    
-    
-    
   };
 
   return (
@@ -134,20 +156,32 @@ export const VisitantesChart: React.FC<VisitantesChartProps> = ({
             }}>
               Visitantes por Día
             </span>
-            <div style={{
-              color: '#52C41A',
-              fontSize: '14px',
-              fontWeight: 600,
-            }}>
-              +12.5%
-            </div>
+            {/* 🔥 Mostrar si hay crecimiento calculado */}
+            {data.length >= 2 && (() => {
+              const ultimo = data[data.length - 1]?.visitantes || 0;
+              const penultimo = data[data.length - 2]?.visitantes || 0;
+              const crecimiento = penultimo > 0 ? ((ultimo - penultimo) / penultimo) * 100 : 0;
+              
+              if (Math.abs(crecimiento) > 0.1) {
+                return (
+                  <div style={{
+                    color: crecimiento > 0 ? '#52C41A' : '#FF4D4F',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                  }}>
+                    {crecimiento > 0 ? '+' : ''}{crecimiento.toFixed(1)}%
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
           <div style={{ 
             color: '#8C8C8C', 
             fontSize: '13px',
             fontWeight: 500,
           }}>
-            Última semana
+            {data.length > 0 ? 'Últimos 7 días' : 'Sin datos'}
           </div>
         </div>
       }
@@ -156,128 +190,144 @@ export const VisitantesChart: React.FC<VisitantesChartProps> = ({
         border: '1px solid #F0F0F0',
         boxShadow: 'none',
         borderRadius: '12px',
-        height: '100%', // ✅ Mantiene altura completa
+        height: '100%',
       }}
       styles={{
-        body: { // ✅ Corregido: styles.body en lugar de bodyStyle
+        body: {
           padding: '24px 32px 32px 32px',
         }
       }}
     >
-      {/* 📊 ESTADÍSTICAS COMO ESTABAN ANTES */}
-      <Row gutter={32} style={{ marginBottom: '32px' }}>
-        <Col span={6}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '28px', 
-              fontWeight: 700, 
-              color: '#1A1A1A',
-              marginBottom: '4px',
-              letterSpacing: '-0.5px'
-            }}>
-              {totalVisitantes.toLocaleString()}
-            </div>
-            <div style={{ 
-              fontSize: '13px', 
-              color: '#8C8C8C',
-              fontWeight: 500,
-            }}>
-              Total visitantes
-            </div>
-          </div>
-        </Col>
-        <Col span={6}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '28px', 
-              fontWeight: 700, 
-              color: '#1A1A1A',
-              marginBottom: '4px',
-              letterSpacing: '-0.5px'
-            }}>
-              {promedioVisitantes}
-            </div>
-            <div style={{ 
-              fontSize: '13px', 
-              color: '#8C8C8C',
-              fontWeight: 500,
-            }}>
-              Promedio/día
-            </div>
-          </div>
-        </Col>
-        <Col span={6}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '28px', 
-              fontWeight: 700, 
-              color: '#1A1A1A',
-              marginBottom: '4px',
-              letterSpacing: '-0.5px'
-            }}>
-              {maxVisitantes}
-            </div>
-            <div style={{ 
-              fontSize: '13px', 
-              color: '#8C8C8C',
-              fontWeight: 500,
-            }}>
-              Máximo
-            </div>
-          </div>
-        </Col>
-        <Col span={6}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '28px', 
-              fontWeight: 700, 
-              color: '#1A1A1A',
-              marginBottom: '4px',
-              letterSpacing: '-0.5px'
-            }}>
-              {minVisitantes}
-            </div>
-            <div style={{ 
-              fontSize: '13px', 
-              color: '#8C8C8C',
-              fontWeight: 500,
-            }}>
-              Mínimo
-            </div>
-          </div>
-        </Col>
-      </Row>
+      {/* 📊 ESTADÍSTICAS REALES */}
+      {data.length > 0 ? (
+        <>
+          <Row gutter={32} style={{ marginBottom: '32px' }}>
+            <Col span={6}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ 
+                  fontSize: '28px', 
+                  fontWeight: 700, 
+                  color: '#1A1A1A',
+                  marginBottom: '4px',
+                  letterSpacing: '-0.5px'
+                }}>
+                  {stats.total.toLocaleString()}
+                </div>
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#8C8C8C',
+                  fontWeight: 500,
+                }}>
+                  Total visitantes
+                </div>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ 
+                  fontSize: '28px', 
+                  fontWeight: 700, 
+                  color: '#1A1A1A',
+                  marginBottom: '4px',
+                  letterSpacing: '-0.5px'
+                }}>
+                  {stats.promedio.toLocaleString()}
+                </div>
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#8C8C8C',
+                  fontWeight: 500,
+                }}>
+                  Promedio/día
+                </div>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ 
+                  fontSize: '28px', 
+                  fontWeight: 700, 
+                  color: '#1A1A1A',
+                  marginBottom: '4px',
+                  letterSpacing: '-0.5px'
+                }}>
+                  {stats.maximo.toLocaleString()}
+                </div>
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#8C8C8C',
+                  fontWeight: 500,
+                }}>
+                  Máximo
+                </div>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ 
+                  fontSize: '28px', 
+                  fontWeight: 700, 
+                  color: '#1A1A1A',
+                  marginBottom: '4px',
+                  letterSpacing: '-0.5px'
+                }}>
+                  {stats.minimo.toLocaleString()}
+                </div>
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#8C8C8C',
+                  fontWeight: 500,
+                }}>
+                  Mínimo
+                </div>
+              </div>
+            </Col>
+          </Row>
 
-      {/* 🎨 GRÁFICO COMO ESTABA ANTES */}
-      <div style={{ 
-        background: '#FFFFFF',
-        borderRadius: '8px',
-        margin: '0 -16px',
-      }}>
-        <Line {...config} />
-      </div>
+          {/* 🎨 GRÁFICO */}
+          <div style={{ 
+            background: '#FFFFFF',
+            borderRadius: '8px',
+            margin: '0 -16px',
+          }}>
+            <Line {...config} />
+          </div>
 
-      {/* 💡 INSIGHT CON ESPACIADO NORMAL */}
-      <div style={{ 
-        marginTop: '24px',
-        padding: '16px 20px',
-        background: '#F8F9FA',
-        borderRadius: '8px',
-        border: '1px solid #F0F0F0',
-      }}>
-        <Text style={{ 
-          fontSize: '14px', 
-          color: '#5A5A5A',
-          fontWeight: 500,
-          lineHeight: '1.5'
+          {/* 💡 INSIGHT REAL */}
+          <div style={{ 
+            marginTop: '24px',
+            padding: '16px 20px',
+            background: '#F8F9FA',
+            borderRadius: '8px',
+            border: '1px solid #F0F0F0',
+          }}>
+            <Text style={{ 
+              fontSize: '14px', 
+              color: '#5A5A5A',
+              fontWeight: 500,
+              lineHeight: '1.5'
+            }}>
+              💡 <strong style={{ color: '#1A1A1A' }}>Insight:</strong> {insightFinal}
+            </Text>
+          </div>
+        </>
+      ) : (
+        // 🚫 Estado sin datos
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '300px',
+          color: '#999'
         }}>
-          💡 <strong style={{ color: '#1A1A1A' }}>Insight:</strong> {
-            maxVisitantes === data[data.length - 1]?.visitantes 
-              ? `El último día registró el mayor número de visitantes (${maxVisitantes} personas)`
-              : `El día más popular fue ${data.find(d => d.visitantes === maxVisitantes)?.dia} con ${maxVisitantes} visitantes`
-          }
-        </Text>
-      </div>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+          <div style={{ fontSize: '16px', marginBottom: '8px' }}>No hay datos de visitantes</div>
+          <div style={{ fontSize: '14px', textAlign: 'center' }}>
+            Los datos aparecerán cuando haya registros en la tabla 'visita'
+          </div>
+        </div>
+      )}
     </Card>
   );
 };

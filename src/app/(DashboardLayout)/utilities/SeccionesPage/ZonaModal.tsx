@@ -1,6 +1,6 @@
 // src/app/(DashboardLayout)/utilities/SeccionesPage/ZonaModal.tsx
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, Row, Col, InputNumber } from 'antd';
+import { Modal, Input, Select, Row, Col, InputNumber, Switch } from 'antd';
 import type { CreateZonaData, Zona } from '@/types/zona';
 
 const { TextArea } = Input;
@@ -19,6 +19,7 @@ interface LocalCreateZonaData {
   nivel: number;
   duracion: number;
   actividad: 'baja' | 'media' | 'alta';
+  activo: boolean; // 🆕 NUEVO CAMPO
 }
 
 interface ZonaModalProps {
@@ -46,7 +47,8 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
     categorias: '',
     nivel: 1,
     duracion: 30,
-    actividad: 'baja'
+    actividad: 'baja',
+    activo: true // 🆕 Por defecto activo
   });
   const [formErrors, setFormErrors] = useState<ValidationErrors>({});
 
@@ -114,7 +116,8 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
           categorias: editingZona.categorias?.[0] || '',
           nivel: editingZona.nivel || 1,
           duracion: editingZona.duracion,
-          actividad: editingZona.actividad
+          actividad: editingZona.actividad,
+          activo: editingZona.activo ?? true // 🆕 Cargar estado activo
         });
       } else {
         // Modo creación - resetear formulario
@@ -124,14 +127,15 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
           categorias: '',
           nivel: 1,
           duracion: 30,
-          actividad: 'baja'
+          actividad: 'baja',
+          activo: true // 🆕 Por defecto activo en nuevas secciones
         });
       }
       setFormErrors({});
     }
   }, [isVisible, editingZona]);
 
-  const handleInputChange = (field: keyof LocalCreateZonaData, value: string | number) => {
+  const handleInputChange = (field: keyof LocalCreateZonaData, value: string | number | boolean) => {
     setFormData({ ...formData, [field]: value });
     // Limpiar error del campo cuando el usuario comience a escribir
     if (formErrors[field]) {
@@ -157,7 +161,8 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
         categorias: formData.categorias ? [formData.categorias] : null,
         nivel: formData.nivel || null,
         duracion: formData.duracion,
-        actividad: formData.actividad
+        actividad: formData.actividad,
+        activo: formData.activo // 🆕 Incluir estado activo
       };
 
       let success = false;
@@ -202,6 +207,39 @@ export const ZonaModal: React.FC<ZonaModalProps> = ({
       }}
     >
       <div style={{ padding: '8px 0' }}>
+        {/* 🆕 CAMPO ESTADO ACTIVO */}
+        <div style={{ 
+          marginBottom: 24, 
+          padding: '12px 16px', 
+          background: formData.activo ? '#f6ffed' : '#fff2e8',
+          border: `1px solid ${formData.activo ? '#b7eb8f' : '#ffbb96'}`,
+          borderRadius: 6 
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center' 
+          }}>
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                Estado de la Sección
+              </div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                {formData.activo 
+                  ? 'La sección estará visible y disponible para visitantes'
+                  : 'La sección estará oculta y no aparecerá en el museo'
+                }
+              </div>
+            </div>
+            <Switch
+              checked={formData.activo}
+              onChange={(checked) => handleInputChange('activo', checked)}
+              checkedChildren="Activa"
+              unCheckedChildren="Inactiva"
+            />
+          </div>
+        </div>
+
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
             Nombre de la Sección *
