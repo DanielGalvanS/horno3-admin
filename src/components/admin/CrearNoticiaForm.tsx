@@ -295,18 +295,35 @@ export const CrearNoticiaForm: React.FC<CrearNoticiaFormProps> = ({
                     borderRadius: '8px',
                     border: '1px solid #d9d9d9'
                   }}
+                  preview={{
+                    zIndex: 99999,
+                    maskStyle: { 
+                      zIndex: 99998 
+                    },
+                    getContainer: () => document.body
+                  }}
                 />
                 <Button
                   type="text"
                   danger
                   icon={<DeleteOutlined />}
                   onClick={handleRemoveImage}
+                  size="small"
                   style={{
                     position: 'absolute',
                     top: '8px',
                     right: '8px',
-                    background: 'rgba(255, 255, 255, 0.8)'
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    border: '1px solid rgba(255, 77, 79, 0.2)',
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '28px',
+                    height: '28px'
                   }}
+                  title="Eliminar imagen"
                 />
               </div>
             ) : (

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const actividad = searchParams.get('actividad');
     const nivel = searchParams.get('nivel');
-    const activo = searchParams.get('activo'); // 🆕 Filtro por estado activo
+    const activo = searchParams.get('activo');
 
     let zonas;
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     } else if (nivel) {
       const todasLasZonas = await ZonaService.getAll();
       zonas = todasLasZonas.filter(zona => zona.nivel === parseInt(nivel));
-    } else if (activo !== null) { // 🆕 Filtro por estado activo
+    } else if (activo !== null) {
       const todasLasZonas = await ZonaService.getAll();
       zonas = todasLasZonas.filter(zona => zona.activo === (activo === 'true'));
     } else {
@@ -56,14 +56,22 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/zonas - Crear nueva zona
+// POST /api/zonas - Crear nueva zona (con soporte para imágenes)
 export async function POST(request: NextRequest) {
   try {
     console.log('=== POST /api/zonas ===');
     
-    const body = await request.json();
+    const formData = await request.formData();
     
-    const { nombre, descripcion, categorias, nivel, duracion, actividad, activo } = body; // 🆕 Incluir activo
+    // Extraer datos del form
+    const nombre = formData.get('nombre') as string;
+    const descripcion = formData.get('descripcion') as string;
+    const categorias = formData.get('categorias') as string;
+    const nivel = formData.get('nivel') as string;
+    const duracion = formData.get('duracion') as string;
+    const actividad = formData.get('actividad') as string;
+    const activo = formData.get('activo') as string;
+    const imagen = formData.get('imagen') as File | null;
 
     console.log('Datos recibidos:', {
       nombre,
@@ -72,7 +80,8 @@ export async function POST(request: NextRequest) {
       nivel,
       duracion,
       actividad,
-      activo // 🆕 Log del campo activo
+      activo,
+      imagen: imagen ? `${imagen.name} (${imagen.size} bytes)` : 'Sin imagen'
     });
 
     // Validaciones básicas
@@ -97,7 +106,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (duracion <= 0) {
+    const duracionNum = parseInt(duracion);
+    if (duracionNum <= 0) {
       return NextResponse.json(
         { 
           success: false, 
@@ -117,18 +127,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validar imagen si se proporciona
+    if (imagen && imagen.size > 0) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(imagen.type)) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Tipo de archivo no válido. Use JPG, PNG, WebP o GIF' 
+          },
+          { status: 400 }
+        );
+      }
+
+      // Límite de 5MB
+      if (imagen.size > 5 * 1024 * 1024) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'La imagen no debe superar los 5MB' 
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const actividadValida = ['baja', 'media', 'alta'].includes(actividad) 
+  ? actividad as 'baja' | 'media' | 'alta' 
+  : 'media'; // valor por defecto
+
+    // Preparar datos de la zona
     const zonaData = {
       nombre,
       descripcion: descripcion || null,
-      categorias: categorias || null,
-      nivel: nivel || null,
-      duracion,
-      actividad,
-      activo: activo ?? true // 🆕 Por defecto true si no se especifica
+      categorias: categorias ? JSON.parse(categorias) : null,
+      nivel: nivel ? parseInt(nivel) : null,
+      duracion: duracionNum,
+      actividad: actividadValida,
+      activo: activo ? activo === 'true' : true
     };
 
-    console.log('Llamando a ZonaService.create...');
-    const zona = await ZonaService.create(zonaData);
+    console.log('Llamando a ZonaService.createWithImage...');
+    
+    // Crear zona con imagen
+    const zona = await ZonaService.createWithImage(
+      zonaData, 
+      imagen && imagen.size > 0 ? imagen : undefined
+    );
+    
     console.log('Zona creada exitosamente:', zona.id);
 
     return NextResponse.json({

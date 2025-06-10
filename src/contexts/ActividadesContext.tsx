@@ -1,4 +1,4 @@
-// src/contexts/ActividadesContext.tsx - CON API ROUTES 🚀
+// src/contexts/ActividadesContext.tsx - CON API ROUTES Y CORRECCIONES SSR 🚀
 
 'use client';
 
@@ -16,7 +16,8 @@ interface ActividadesState {
   lastUpdated: Date | null;
   totalActividades: number;
   isOnline: boolean;
-  initialized: boolean; // 🆕 Para evitar loading infinito
+  initialized: boolean;
+  isClient: boolean; // 🆕 Para controlar hidratación SSR
 }
 
 interface ActividadesContextType extends ActividadesState {
@@ -34,6 +35,7 @@ type ActividadesAction =
   | { type: 'SET_REALTIME'; payload: boolean }
   | { type: 'SET_ONLINE'; payload: boolean }
   | { type: 'SET_INITIALIZED'; payload: boolean }
+  | { type: 'SET_CLIENT'; payload: boolean } // 🆕
   | { type: 'UPDATE_TIMESTAMP' };
 
 // 🎯 REDUCER
@@ -78,6 +80,9 @@ const actividadesReducer = (state: ActividadesState, action: ActividadesAction):
     case 'SET_INITIALIZED':
       return { ...state, initialized: action.payload };
     
+    case 'SET_CLIENT':
+      return { ...state, isClient: action.payload };
+    
     case 'UPDATE_TIMESTAMP':
       return { ...state, lastUpdated: new Date() };
     
@@ -94,8 +99,9 @@ const initialState: ActividadesState = {
   isRealtime: false,
   lastUpdated: null,
   totalActividades: 0,
-  isOnline: navigator?.onLine ?? true,
-  initialized: false
+  isOnline: true,
+  initialized: false,
+  isClient: false // 🆕 Para evitar problemas de hidratación
 };
 
 // 🎯 CONTEXT
@@ -111,6 +117,11 @@ export const ActividadesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const lastFetchRef = useRef<number>(0);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // 🔧 DETECTAR CLIENTE (hidratación)
+  useEffect(() => {
+    dispatch({ type: 'SET_CLIENT', payload: true });
+  }, []);
 
   // 🎯 FUNCIÓN PARA OBTENER ACTIVIDADES (usando API Route)
   const obtenerActividades = useCallback(async (forzar: boolean = false): Promise<void> => {
@@ -155,15 +166,17 @@ export const ActividadesProvider: React.FC<{ children: React.ReactNode }> = ({ c
         throw new Error(data.error || 'Error desconocido del servidor');
       }
 
-      // Guardar en localStorage para persistencia
-      try {
-        localStorage.setItem('museo_actividades', JSON.stringify({
-          actividades: data.actividades,
-          total: data.total,
-          timestamp: ahora
-        }));
-      } catch (e) {
-        console.warn('No se pudo guardar en localStorage:', e);
+      // 🔧 Guardar en localStorage para persistencia (solo en cliente)
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          localStorage.setItem('museo_actividades', JSON.stringify({
+            actividades: data.actividades,
+            total: data.total,
+            timestamp: ahora
+          }));
+        } catch (e) {
+          console.warn('No se pudo guardar en localStorage:', e);
+        }
       }
 
       dispatch({ 
@@ -183,24 +196,26 @@ export const ActividadesProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       console.error('❌ Error al obtener actividades via API:', err);
       
-      // Intentar cargar desde localStorage como fallback
-      try {
-        const stored = localStorage.getItem('museo_actividades');
-        if (stored) {
-          const parsedData = JSON.parse(stored);
-          const edadDatos = ahora - parsedData.timestamp;
-          
-          if (edadDatos < 300000) { // Menos de 5 minutos
-            console.log('📦 Cargando desde localStorage como fallback');
-            dispatch({ 
-              type: 'SET_ACTIVIDADES', 
-              payload: { actividades: parsedData.actividades, total: parsedData.total } 
-            });
-            return;
+      // 🔧 Intentar cargar desde localStorage como fallback (solo en cliente)
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          const stored = localStorage.getItem('museo_actividades');
+          if (stored) {
+            const parsedData = JSON.parse(stored);
+            const edadDatos = ahora - parsedData.timestamp;
+            
+            if (edadDatos < 300000) { // Menos de 5 minutos
+              console.log('📦 Cargando desde localStorage como fallback');
+              dispatch({ 
+                type: 'SET_ACTIVIDADES', 
+                payload: { actividades: parsedData.actividades, total: parsedData.total } 
+              });
+              return;
+            }
           }
+        } catch (e) {
+          console.warn('Error cargando localStorage:', e);
         }
-      } catch (e) {
-        console.warn('Error cargando localStorage:', e);
       }
       
       dispatch({ type: 'SET_ERROR', payload: err.message || 'Error al cargar actividades' });
@@ -286,8 +301,14 @@ export const ActividadesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
-  // 🌐 MONITOREO DE CONEXIÓN
+  // 🌐 MONITOREO DE CONEXIÓN (solo en cliente)
   useEffect(() => {
+    // ✅ Verificar que estamos en el cliente
+    if (typeof window === 'undefined') return;
+
+    // Establecer estado inicial de conexión
+    dispatch({ type: 'SET_ONLINE', payload: navigator.onLine });
+
     const handleOnline = () => {
       console.log('🌐 Conexión restaurada');
       dispatch({ type: 'SET_ONLINE', payload: true });
@@ -310,9 +331,9 @@ export const ActividadesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, [obtenerActividades, configurarRealtime]);
 
-  // ⚡ INICIALIZACIÓN (solo una vez)
+  // ⚡ INICIALIZACIÓN (solo una vez y solo en cliente)
   useEffect(() => {
-    if (!state.initialized) {
+    if (!state.initialized && state.isClient) {
       console.log('🚀 Inicializando ActividadesProvider...');
       
       // Cargar datos inmediatamente
@@ -323,11 +344,11 @@ export const ActividadesProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       return () => clearTimeout(timer);
     }
-  }, [state.initialized, obtenerActividades, configurarRealtime]);
+  }, [state.initialized, state.isClient, obtenerActividades, configurarRealtime]);
 
-  // 🔄 AUTO-REFRESH inteligente (solo si está inicializado)
+  // 🔄 AUTO-REFRESH inteligente (solo si está inicializado y en cliente)
   useEffect(() => {
-    if (!state.initialized) return;
+    if (!state.initialized || !state.isClient) return;
     
     intervalRef.current = setInterval(() => {
       if (state.isOnline && !state.loading) {
@@ -339,7 +360,7 @@ export const ActividadesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [state.isOnline, state.loading, state.initialized, obtenerActividades]);
+  }, [state.isOnline, state.loading, state.initialized, state.isClient, obtenerActividades]);
 
   // 🧹 CLEANUP
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import { ZonaService } from '@/services/zona.service';
 import type { Zona, CreateZonaData } from '@/types/zona';
@@ -8,7 +8,7 @@ export const useZonas = () => {
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const fetchZonas = async () => {
+  const fetchZonas = useCallback(async () => {
     try {
       setLoading(true);
       const data = await ZonaService.getAll();
@@ -18,7 +18,7 @@ export const useZonas = () => {
     } finally {
       setLoading(false);
     }
-  };
+  },[messageApi]);
 
   const createZona = async (zonaData: CreateZonaData): Promise<boolean> => {
     try {
@@ -58,7 +58,7 @@ export const useZonas = () => {
 
   useEffect(() => {
     fetchZonas();
-  }, []);
+  }, [fetchZonas]);
 
   return {
     zonas,

@@ -46,17 +46,15 @@ const SeccionesPage: React.FC = () => {
     }
   };
 
-  // ✅ Crear zona usando API directa (como en noticias)
-  const createZona = async (zonaData: CreateZonaData): Promise<boolean> => {
+  // 🖼️ CREAR ZONA USANDO FORMDATA (para soporte de imágenes)
+  const createZona = async (formData: FormData): Promise<boolean> => {
     try {
-      console.log('Creando zona...');
+      console.log('Creando zona con imagen...');
       
       const response = await fetch('/api/zonas', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(zonaData),
+        body: formData, // 🔧 Usar FormData en lugar de JSON
+        // NO agregar Content-Type header, fetch lo hace automáticamente para FormData
       });
 
       const result = await response.json();
@@ -69,6 +67,7 @@ const SeccionesPage: React.FC = () => {
         // Agregar la nueva zona al estado
         setZonas(prev => [...prev, result.data]);
         message.success('Sección creada correctamente');
+        console.log('✅ Zona creada con éxito:', result.data.id);
         return true;
       } else {
         throw new Error(result.error || 'Error desconocido');
@@ -80,17 +79,15 @@ const SeccionesPage: React.FC = () => {
     }
   };
 
-  // ✅ Actualizar zona usando API directa (como en noticias)
-  const updateZona = async (id: string, zonaData: CreateZonaData): Promise<boolean> => {
+  // 🖼️ ACTUALIZAR ZONA USANDO FORMDATA (para soporte de imágenes)
+  const updateZona = async (id: string, formData: FormData): Promise<boolean> => {
     try {
-      console.log(`Actualizando zona ${id}...`);
+      console.log(`Actualizando zona ${id} con imagen...`);
       
       const response = await fetch(`/api/zonas/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(zonaData),
+        body: formData, // 🔧 Usar FormData en lugar de JSON
+        // NO agregar Content-Type header, fetch lo hace automáticamente para FormData
       });
 
       const result = await response.json();
@@ -103,6 +100,7 @@ const SeccionesPage: React.FC = () => {
         // Actualizar la zona en el estado
         setZonas(prev => prev.map(zona => zona.id === id ? result.data : zona));
         message.success('Sección actualizada correctamente');
+        console.log('✅ Zona actualizada con éxito:', id);
         return true;
       } else {
         throw new Error(result.error || 'Error desconocido');
@@ -114,10 +112,10 @@ const SeccionesPage: React.FC = () => {
     }
   };
 
-  // ✅ Eliminar zona usando API directa (como en noticias)
+  // 🗑️ ELIMINAR ZONA (ya elimina imagen automáticamente en el backend)
   const deleteZona = async (id: string): Promise<boolean> => {
     try {
-      console.log(`Eliminando zona ${id}...`);
+      console.log(`Eliminando zona ${id} con su imagen...`);
       
       const response = await fetch(`/api/zonas/${id}`, {
         method: 'DELETE',
@@ -129,6 +127,7 @@ const SeccionesPage: React.FC = () => {
         // Remover la zona del estado
         setZonas(prev => prev.filter(zona => zona.id !== id));
         message.success('Sección eliminada correctamente');
+        console.log('✅ Zona eliminada con éxito:', id);
         return true;
       } else {
         throw new Error(result.error || 'Error al eliminar');
@@ -140,32 +139,37 @@ const SeccionesPage: React.FC = () => {
     }
   };
 
-// En tu página principal de secciones
-const handleToggleActive = async (id: string, activo: boolean): Promise<boolean> => {
-  try {
-    const response = await fetch(`/api/zonas/${id}`, {
-      method: 'PATCH', // 🆕 Usar PATCH en lugar de PUT
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activo })
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log(result.message); // Log del mensaje de éxito
+  // ⚡ TOGGLE ESTADO ACTIVO (sin cambiar imagen)
+  const handleToggleActive = async (id: string, activo: boolean): Promise<boolean> => {
+    try {
+      console.log(`Cambiando estado de zona ${id} a: ${activo}`);
       
-      // Recargar datos
-      await fetchZonas(); // Tu función para recargar las zonas
-      return true;
-    } else {
-      const error = await response.json();
-      console.error('Error:', error.error);
+      const response = await fetch(`/api/zonas/${id}`, {
+        method: 'PATCH', // 🆕 Usar PATCH en lugar de PUT para solo cambiar estado
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Actualizar estado en la lista local
+        setZonas(prev => prev.map(zona => 
+          zona.id === id ? { ...zona, activo } : zona
+        ));
+        
+        message.success(result.message || `Sección ${activo ? 'activada' : 'desactivada'} correctamente`);
+        console.log('✅ Estado cambiado:', result.message);
+        return true;
+      } else {
+        throw new Error(result.error || 'Error al cambiar estado');
+      }
+    } catch (error: any) {
+      console.error('Error updating zona active state:', error);
+      message.error(`Error al cambiar estado: ${error.message}`);
       return false;
     }
-  } catch (error) {
-    console.error('Error updating zona active state:', error);
-    return false;
-  }
-};
+  };
 
   // ✅ Funciones del modal (como en noticias)
   const openCreateModal = () => {
@@ -189,6 +193,7 @@ const handleToggleActive = async (id: string, activo: boolean): Promise<boolean>
     fetchZonas();
   }, []);
 
+  // 🛡️ Control de acceso
   if (!user) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -217,13 +222,15 @@ const handleToggleActive = async (id: string, activo: boolean): Promise<boolean>
             searchText={searchText}
           />
         </Card>
+        
+        {/* 🎭 Modal para crear/editar secciones con imágenes */}
         <ZonaModal
           isVisible={isVisible}
           editingZona={editingZona}
           loading={modalLoading}
           onClose={closeModal}
-          onSave={createZona}
-          onUpdate={updateZona}
+          onSave={createZona} // 🔧 Ahora espera FormData
+          onUpdate={updateZona} // 🔧 Ahora espera FormData
           setLoading={setModalLoading}
         />
       </div>

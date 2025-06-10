@@ -72,7 +72,7 @@ export function useDashboardBasic(): UseDashboardBasicReturn {
           laboratoriosHoy: result.data.kpis.laboratoriosHoy || 0,
           capacidadHoy: result.data.kpis.capacidadHoy || 0,
           zonasActivas: result.data.kpis.zonasActivas || 0,
-          totalZonas: 12,
+          totalZonas: result.data.kpis.totalZonas || 0,
           duracionPromedio: 85,
           crecimientoVisitantes: result.data.kpis.crecimientoVisitantes || 0
         },
@@ -101,7 +101,7 @@ export function useDashboardBasic(): UseDashboardBasicReturn {
           laboratoriosHoy: 0,
           capacidadHoy: 0,           // ⭐ Este era el que faltaba
           zonasActivas: 0,
-          totalZonas: 12,
+          totalZonas: 0,
           duracionPromedio: 85,
           crecimientoVisitantes: 0
         },

@@ -10,6 +10,7 @@ export interface Zona {
     duracion: number
     actividad: 'baja' | 'media' | 'alta'
     activo: boolean
+    imagen_url?: string
   }
   
   // Tipo para crear nuevas zonas
@@ -21,6 +22,7 @@ export interface Zona {
     duracion: number
     actividad: 'baja' | 'media' | 'alta'
     activo: boolean
+    imagen_url?: string | null
   }
 
   export interface ValidationErrors {

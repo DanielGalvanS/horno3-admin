@@ -67,6 +67,7 @@ async function obtenerKPIsPrincipales() {
       laboratoriosHoy: data?.laboratorios_hoy || 0,
       capacidadHoy: data?.capacidad_hoy || 0,
       zonasActivas: data?.zonas_activas || 0,
+      totalZonas: data?.total_zonas || 0,
       crecimientoVisitantes: data?.crecimiento_visitantes || 0
     };
 
@@ -119,7 +120,7 @@ async function obtenerVisitantes7Dias() {
         minimo: Math.min(...visitantesArray, 0)
       },
       insight: totalVisitantes > 0 ? 
-        `El día más popular fue ${diaMasPopular.dia} con ${diaMasPopular.visitantes} visitantes` :
+      `El día más popular fue ${diaMasPopular.dia} con ${diaMasPopular.visitantes} visitantes` :
         'No hay datos de visitantes disponibles'
     };
 

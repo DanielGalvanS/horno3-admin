@@ -12,7 +12,13 @@ import {
   CalendarOutlined,
   ReloadOutlined,
   DatabaseOutlined,
-  WifiOutlined
+  WifiOutlined,
+  BookOutlined,
+  BgColorsOutlined,
+  SettingOutlined,
+  ReadOutlined,
+  ExperimentOutlined,
+  PictureOutlined
 } from '@ant-design/icons';
 
 import { DashboardLayout } from './DashboardLayout';
@@ -62,7 +68,7 @@ export const MainDashboard: React.FC = () => {
     laboratoriosHoy: 0,
     capacidadHoy: 0,            // 🆕 Faltaba - ¡Este era el problema!
     zonasActivas: 0,
-    totalZonas: 12,
+    totalZonas: 0,
     duracionPromedio: 85,
     crecimientoVisitantes: 0
   };
@@ -172,7 +178,6 @@ export const MainDashboard: React.FC = () => {
           <KPICard
             titulo="Eventos Hoy"
             valor={stats.eventosHoy}
-            sufijo={` (${stats.showsHoy}S/${stats.laboratoriosHoy}L)`}
             icono={<PlayCircleOutlined />}
             color="#52c41a"
             loading={loadingDashboard}
@@ -192,7 +197,7 @@ export const MainDashboard: React.FC = () => {
           <KPICard
             titulo="Zonas Activas"
             valor={stats.zonasActivas}
-            sufijo={`/ ${stats.totalZonas || 12}`}
+            sufijo={`/ ${stats.totalZonas}`}
             icono={<EnvironmentOutlined />}
             loading={loadingDashboard}
           />
@@ -211,27 +216,17 @@ export const MainDashboard: React.FC = () => {
           />
         </Col>
         
-        {/* 🔥 Zonas Más Populares - CON DATOS REALES */}
+        {/* 🔥 Zonas Más Populares - LAYOUT MEJORADO */}
         <Col xs={24} lg={8}>
           <Card 
             title={
               <Space>
                 <TrophyOutlined style={{ color: '#FF6B35' }} />
                 <span>Zonas Más Populares</span>
-                {!loadingDashboard && zonasPopulares.length > 0 && (
-                  <Tag color="green" style={{ marginLeft: '8px', fontSize: '11px', padding: '2px 6px' }}>
-                    REAL DATA
-                  </Tag>
-                )}
               </Space>
             }
             className="chart-card"
             loading={loadingDashboard}
-            extra={
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {zonasPopulares.length > 0 ? 'Datos Reales' : 'Sin datos'}
-              </Text>
-            }
           >
             {zonasPopulares.length === 0 && !loadingDashboard ? (
               <div style={{ 
@@ -249,120 +244,163 @@ export const MainDashboard: React.FC = () => {
               <List
                 dataSource={zonasPopulares}
                 renderItem={(zona, index) => {
-                  // Colores y iconos por ranking
+                  // Colores por ranking
                   const getRankingStyle = (index: number) => {
                     const styles = {
-                      0: { color: '#FFD700', bgColor: '#FFF9E6', icon: '🥇' },
-                      1: { color: '#C0C0C0', bgColor: '#F5F5F5', icon: '🥈' },
-                      2: { color: '#CD7F32', bgColor: '#FFF4E6', icon: '🥉' },
-                      default: { color: '#8C8C8C', bgColor: '#FAFAFA', icon: '🏆' }
+                      0: { color: '#FFD700', bgColor: '#FFF9E6' },
+                      1: { color: '#C0C0C0', bgColor: '#F5F5F5' },
+                      2: { color: '#CD7F32', bgColor: '#FFF4E6'},
+                      default: { color: '#8C8C8C', bgColor: '#FAFAFA' }
                     };
                     return styles[index as keyof typeof styles] || styles.default;
                   };
 
-                  // Iconos por categoría
+                  // Iconos por categoría con Ant Design
                   const getCategoryIcon = (categoria: string) => {
-                    const icons = {
-                      'Historia': '📚',
-                      'Arte y Cultura': '🎨', 
-                      'Tecnología': '⚙️',
-                      'Educación': '🎓',
-                      'General': '📍'
+                    const iconProps = { style: { fontSize: '16px', color: '#666' } };
+                    
+                    const icons: { [key: string]: React.ReactNode } = {
+                      'Historia': <PictureOutlined {...iconProps} />,
+                      'Arte y Cultura': <BgColorsOutlined {...iconProps} />, 
+                      'Tecnología': <SettingOutlined {...iconProps} />,
+                      'Educación': <ReadOutlined {...iconProps} />,
+                      'Ciencias Naturales': <ExperimentOutlined {...iconProps} />,
+                      'Arqueología': <ExperimentOutlined {...iconProps} />,
+                      'General': <EnvironmentOutlined {...iconProps} />
                     };
-                    return icons[categoria as keyof typeof icons] || '📍';
+                    
+                    return icons[categoria] || <EnvironmentOutlined {...iconProps} />;
                   };
 
                   const rankStyle = getRankingStyle(index);
 
                   return (
-                    <List.Item style={{ 
-                      padding: '16px 0', 
-                      borderBottom: index === zonasPopulares.length - 1 ? 'none' : '1px solid #f0f0f0'
-                    }}>
+                    <List.Item 
+                      style={{ 
+                        padding: '20px 0', 
+                        borderBottom: index === zonasPopulares.length - 1 ? 'none' : '1px solid #f0f0f0'
+                      }}
+                    >
                       <div style={{ width: '100%' }}>
-                        {/* Header con ranking y nombre */}
+                        {/* 🎯 HEADER: Ranking + Título + Score */}
                         <div style={{ 
                           display: 'flex', 
-                          alignItems: 'center',
-                          marginBottom: '12px',
-                          gap: '12px'
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          marginBottom: '16px'
                         }}>
-                          {/* Ranking badge */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            backgroundColor: rankStyle.bgColor,
-                            border: `2px solid ${rankStyle.color}`,
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            color: rankStyle.color,
-                            flexShrink: 0
-                          }}>
-                            {zona.ranking}
-                          </div>
-
-                          {/* Información de la zona */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ 
-                              display: 'flex', 
+                          {/* Left: Ranking Badge + Info */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
+                            {/* Ranking Badge */}
+                            <div style={{
+                              display: 'flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              marginBottom: '4px'
+                              justifyContent: 'center',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: rankStyle.bgColor,
+                              border: `2px solid ${rankStyle.color}`,
+                              fontSize: '14px',
+                              fontWeight: 'bold',
+                              color: rankStyle.color,
+                              flexShrink: 0
                             }}>
-                              <span style={{ fontSize: '14px' }}>
-                                {getCategoryIcon(zona.categoria)}
-                              </span>
-                              <Text strong style={{ 
-                                fontSize: '14px',
-                                color: '#262626',
-                                lineHeight: 1
-                              }}>
-                                {zona.nombre}
-                              </Text>
-                              {zona.clasificacion && (
-                                <Tag color="blue" style={{ marginLeft: '4px', fontSize: '10px', padding: '1px 4px' }}>
-                                  {zona.clasificacion.split(' ')[0]}
-                                </Tag>
-                              )}
+                              {zona.ranking}
                             </div>
-                            
-                            <Text type="secondary" style={{ 
-                              fontSize: '12px',
-                              lineHeight: 1
-                            }}>
-                              {zona.categoria} • Nivel {zona.nivel} • {zona.shows || 0}S/{zona.laboratorios || 0}L
-                            </Text>
+
+                            {/* Zone Info */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              {/* Title Row */}
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                gap: '8px',
+                                marginBottom: '6px'
+                              }}>
+                                {getCategoryIcon(zona.categoria)}
+                                <Text strong style={{ 
+                                  fontSize: '15px',
+                                  color: '#262626',
+                                  lineHeight: 1.2,
+                                  wordBreak: 'break-word'
+                                }}>
+                                  {zona.nombre}
+                                </Text>
+                              </div>
+                              
+                              {/* Subtitle Row */}
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                gap: '8px',
+                                flexWrap: 'wrap'
+                              }}>
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                  {zona.categoria}
+                                </Text>
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                  •
+                                </Text>
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                  Nivel {zona.nivel}
+                                </Text>
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+
+                                </Text>
+                                
+                              </div>
+                                
+                                {zona.clasificacion && (
+                                  
+                                    <>
+                                    <div style={{ marginTop: '8px' }}>
+                                      <Tag 
+                                        color="blue" 
+                                        style={{ 
+                                          fontSize: '10px', 
+                                          padding: '2px 6px',
+                                          lineHeight: '16px',
+                                          borderRadius: '8px'
+                                        }}
+                                      >
+                                        {zona.clasificacion}
+                                      </Tag>
+                                      </div>
+                                    </>
+                                  )}
+                                
+                            </div>
                           </div>
 
-                          {/* Número de visitas/eventos */}
+                          {/* Right: Events Count */}
                           <div style={{ 
-                            textAlign: 'right',
+                            textAlign: 'center',
+                            minWidth: '60px',
                             flexShrink: 0
                           }}>
-                            <Text style={{ 
-                              fontSize: '16px', 
+                            <div style={{ 
+                              fontSize: '20px', 
                               color: '#FF6B35', 
-                              fontWeight: 600,
+                              fontWeight: 700,
                               lineHeight: 1,
-                              display: 'block'
+                              marginBottom: '2px'
                             }}>
                               {zona.visitas}
-                            </Text>
+                            </div>
                             <Text type="secondary" style={{ 
                               fontSize: '11px',
-                              lineHeight: 1
+                              lineHeight: 1,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
                             }}>
                               eventos
                             </Text>
                           </div>
                         </div>
 
-                        {/* Barra de progreso con score */}
-                        <div style={{ marginBottom: '8px' }}>
+                        {/* 📊 PROGRESS BAR */}
+                        <div style={{ marginBottom: '14px' }}>
                           <Progress
                             percent={Math.min(100, zona.porcentaje)}
                             size="small"
@@ -371,60 +409,69 @@ export const MainDashboard: React.FC = () => {
                               '100%': '#FF8A65',
                             }}
                             trailColor="#f5f5f5"
-                            strokeWidth={6}
+                            strokeWidth={8}
                             showInfo={false}
-                            className="zone-progress"
+                            style={{ marginBottom: '4px' }}
                           />
                         </div>
 
-                        {/* Footer con duración y score */}
+                        {/* 🏷️ FOOTER: Duration + Activity + Score */}
                         <div style={{ 
                           display: 'flex', 
                           justifyContent: 'space-between',
                           alignItems: 'center'
                         }}>
-                          <Space size={4}>
-                            <Text type="secondary" style={{ fontSize: '12px' }}>
-                              🕐 {zona.duracion} min
-                            </Text>
+                          {/* Left: Duration + Activity Tag */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '4px',
+                              fontSize: '12px',
+                              color: '#666'
+                            }}>
+                              <ClockCircleOutlined style={{ fontSize: '12px' }} />
+                              <span>{zona.duracion} min</span>
+                            </div>
+                            
                             {zona.actividad && (
-                              <Tag color={
-                                zona.actividad === 'alta' ? 'red' :
-                                zona.actividad === 'media' ? 'orange' : 'green'
-                              } style={{ fontSize: '10px', padding: '1px 4px' }}>
+                              <Tag 
+                                color={
+                                  zona.actividad === 'alta' ? 'red' :
+                                  zona.actividad === 'media' ? 'orange' : 'green'
+                                } 
+                                style={{ 
+                                  fontSize: '10px', 
+                                  padding: '2px 6px',
+                                  lineHeight: '16px',
+                                  borderRadius: '6px',
+                                  textTransform: 'capitalize'
+                                }}
+                              >
                                 {zona.actividad}
                               </Tag>
                             )}
-                          </Space>
-                          <Text style={{ 
+                          </div>
+
+                          {/* Right: Score */}
+                          <div style={{ 
                             fontSize: '12px',
-                            color: '#FF6B35',
-                            fontWeight: 500
+                            fontWeight: 600,
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #f0f0f0',
                           }}>
-                            Score: {zona.porcentaje}
-                          </Text>
+                            Score: {Math.round(zona.porcentaje)}
+                          </div>
                         </div>
                       </div>
                     </List.Item>
                   );
                 }}
+                split={false}
               />
             )}
             
-            {/* Footer de la tarjeta */}
-            <div style={{
-              marginTop: '16px',
-              paddingTop: '12px',
-              borderTop: '1px solid #f0f0f0',
-              textAlign: 'center'
-            }}>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {zonasPopulares.length > 0 
-                  ? `Basado en preferencias reales • ${lastUpdatedDashboard?.toLocaleTimeString('es-ES')}`
-                  : 'Esperando datos de zonas con eventos'
-                }
-              </Text>
-            </div>
           </Card>
         </Col>
       </Row>
