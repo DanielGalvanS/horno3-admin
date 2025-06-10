@@ -1,8 +1,8 @@
-// src/components/dashboard/MainDashboard.tsx - CON DATOS REALES 🚀
+// src/components/dashboard/MainDashboard.tsx - CON DATOS REALES Y GRÁFICA MEJORADA 🚀
 'use client';
 
 import React from 'react';
-import { Row, Col, Card, List, Progress, Typography, Space, Tag, Alert, Button } from 'antd';
+import { Row, Col, Card, List, Progress, Typography, Space, Tag, Alert, Button, message } from 'antd';
 import { 
   UserOutlined, 
   EnvironmentOutlined, 
@@ -19,24 +19,25 @@ import {
   ReadOutlined,
   ExperimentOutlined,
   PictureOutlined,
-  MessageOutlined,  // 🆕 AGREGADO
-  StarOutlined      // 🆕 AGREGADO
+  MessageOutlined,  // 🆕 MANTENIDO
+  StarOutlined      // 🆕 MANTENIDO
 } from '@ant-design/icons';
 
 import { DashboardLayout } from './DashboardLayout';
 import { KPICard } from './KPICard';
 import { ActivityTimeline } from './ActivityTimeline';
 import { VisitantesChart } from './VisitantesChart';
-import { ReviewsCard } from './ReviewsCard';  // 🆕 AGREGADO
+import { ReviewsCard } from './ReviewsCard';  // 🆕 MANTENIDO
 import { useActividades } from '@/hooks/useActividades';
 import { useDashboardBasic } from '@/hooks/useDashboardBasic';
-import { useReviews } from '@/hooks/useReviews';  // 🆕 AGREGADO
+import { useVisitantesData } from '@/hooks/useVisitantesData';  // 🆕 SOLO ESTO ES NUEVO
+import { useReviews } from '@/hooks/useReviews';  // 🆕 MANTENIDO
 import type { DashboardStats,ShowProximo } from '@/types/dashboard';
 
 const { Text, Title } = Typography;
 
 export const MainDashboard: React.FC = () => {
-  // 🔥 HOOKS EXISTENTES
+  // 🔥 HOOKS EXISTENTES - TODOS MANTENIDOS
   const {
     data: dashboardData,
     loading: loadingDashboard,
@@ -55,7 +56,7 @@ export const MainDashboard: React.FC = () => {
     totalActividades
   } = useActividades(12);
 
-  // 🆕 NUEVO HOOK PARA REVIEWS
+  // 🆕 NUEVO HOOK PARA REVIEWS - MANTENIDO
   const {
     reviews,
     stats: reviewsStats,
@@ -70,7 +71,16 @@ export const MainDashboard: React.FC = () => {
     refreshInterval: 60000
   });
 
-  // 🎯 Datos reales o fallback - COMPLETO CON TODOS LOS CAMPOS
+  // 🆕 SOLO ESTO ES NUEVO - Hook para la gráfica con dropdown
+  const { 
+    data: visitantesDataExtra, 
+    loading: loadingVisitantesExtra,
+    error: errorVisitantesExtra,
+    changeWeek,
+    refetch: refetchVisitantesExtra 
+  } = useVisitantesData();
+
+  // 🎯 Datos reales o fallback - COMPLETO CON TODOS LOS CAMPOS - MANTENIDO
   const stats: DashboardStats = dashboardData?.kpis || {
     visitantesHoy: 0,
     visitantesMes: 0,
@@ -85,12 +95,15 @@ export const MainDashboard: React.FC = () => {
     crecimientoVisitantes: 0
   };
 
-  const visitantesPorDia = dashboardData?.visitantesPorDia?.datos || [];
+  // 🆕 MODIFICADO: Usar datos del hook extra para la gráfica O fallback a los básicos
+  const visitantesPorDia = visitantesDataExtra?.datos || dashboardData?.visitantesPorDia?.datos || [];
+  const estadisticasVisitantes = visitantesDataExtra?.estadisticas || dashboardData?.visitantesPorDia?.estadisticas;
+  const estadisticasAgregadas = visitantesDataExtra?.estadisticasAgregadas;
+  const insightVisitantes = visitantesDataExtra?.insight || dashboardData?.visitantesPorDia?.insight;
+  
   const zonasPopulares = dashboardData?.zonasPopulares || [];
-  const estadisticasVisitantes = dashboardData?.visitantesPorDia?.estadisticas;
-  const insightVisitantes = dashboardData?.visitantesPorDia?.insight;
 
-  // 🆕 HANDLERS PARA REVIEWS
+  // 🆕 HANDLERS PARA REVIEWS - MANTENIDOS
   const handleViewAllReviews = () => {
     // Aquí puedes navegar a tu página de reviews completa
     // router.push('/admin/reviews');
@@ -103,7 +116,17 @@ export const MainDashboard: React.FC = () => {
     console.log(`🔍 Ver review: ${reviewId}`);
   };
 
-  // 🆕 HANDLER MODIFICADO PARA ACTUALIZAR TODO
+  // 🆕 NUEVO - Handler para cambio de semana en la gráfica
+  const handleWeekChange = async (startDate: string, endDate: string) => {
+    try {
+      await changeWeek(startDate, endDate);
+      message.success('Período actualizado correctamente');
+    } catch (err) {
+      message.error('Error al cambiar período de consulta');
+    }
+  };
+
+  // 🆕 HANDLER MODIFICADO PARA ACTUALIZAR TODO - MANTENIDO + GRÁFICA
   const handleRefreshAll = async () => {
     console.log('🔄 Actualizando todo el dashboard...');
     
@@ -111,12 +134,15 @@ export const MainDashboard: React.FC = () => {
       await Promise.all([
         refetchDashboard(),
         refetchActividades(),
-        refetchReviews()  // 🆕 AGREGADO
+        refetchReviews(),  // 🆕 MANTENIDO
+        refetchVisitantesExtra()  // 🆕 SOLO ESTO ES NUEVO
       ]);
       
+      message.success('Dashboard actualizado correctamente');
       console.log('✅ Dashboard completamente actualizado');
     } catch (error) {
       console.error('❌ Error actualizando dashboard:', error);
+      message.error('Error al actualizar dashboard');
     }
   };
 
@@ -124,7 +150,7 @@ export const MainDashboard: React.FC = () => {
     <DashboardLayout
       acciones={
         <Space size="middle">
-          {/* 🔥 Botón para actualizar dashboard completo */}
+          {/* 🔥 Botón para actualizar dashboard completo - MANTENIDO */}
           <Button 
             icon={<DatabaseOutlined />}
             onClick={refetchDashboard}
@@ -133,7 +159,7 @@ export const MainDashboard: React.FC = () => {
           >
             Actualizar Dashboard
           </Button>
-          {/* 🆕 NUEVO BOTÓN PARA REVIEWS */}
+          {/* 🆕 BOTÓN PARA REVIEWS - MANTENIDO */}
           <Button 
             icon={<MessageOutlined />}
             onClick={refetchReviews}
@@ -145,8 +171,8 @@ export const MainDashboard: React.FC = () => {
           <Button 
             type="primary"
             icon={<ReloadOutlined />}
-            onClick={handleRefreshAll}  // 🆕 MODIFICADO para incluir reviews
-            loading={loadingDashboard || loadingActividades || loadingReviews}  // 🆕 MODIFICADO
+            onClick={handleRefreshAll}  // 🆕 MODIFICADO para incluir gráfica
+            loading={loadingDashboard || loadingActividades || loadingReviews || loadingVisitantesExtra}  // 🆕 MODIFICADO
             style={{ borderRadius: '8px' }}
           >
             Actualizar Todo
@@ -154,9 +180,7 @@ export const MainDashboard: React.FC = () => {
         </Space>
       }
     >
-     
-
-      {/* ⚠️ MOSTRAR ERRORES */}
+      {/* ⚠️ MOSTRAR ERRORES - MANTENIDOS + NUEVO ERROR DE GRÁFICA */}
       {errorDashboard && (
         <Alert
           message="Error de Conexión a Dashboard"
@@ -179,7 +203,7 @@ export const MainDashboard: React.FC = () => {
         />
       )}
 
-      {/* 🆕 ERROR DE REVIEWS */}
+      {/* 🆕 ERROR DE REVIEWS - MANTENIDO */}
       {errorReviews && (
         <Alert
           message="Error de Reviews API"
@@ -191,7 +215,19 @@ export const MainDashboard: React.FC = () => {
         />
       )}
 
-      {/* 🔥 KPIs Row - CON DATOS REALES Y REVIEWS */}
+      {/* 🆕 NUEVO ERROR PARA GRÁFICA */}
+      {errorVisitantesExtra && (
+        <Alert
+          message="Error de Gráfica de Visitantes"
+          description={`${errorVisitantesExtra} - Usando datos básicos del dashboard`}
+          type="info"
+          showIcon
+          style={{ marginBottom: '24px' }}
+          closable
+        />
+      )}
+
+      {/* 🔥 KPIs Row - CON DATOS REALES Y REVIEWS - MANTENIDO EXACTO */}
       <Row gutter={[24, 24]} className="kpi-row">
         <Col xs={24} sm={12} lg={6}>
           <KPICard
@@ -203,7 +239,7 @@ export const MainDashboard: React.FC = () => {
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          {/* 🆕 MODIFICADO: Reemplazar "Eventos Hoy" con "Reviews Total" */}
+          {/* 🆕 REVIEWS TOTAL - MANTENIDO */}
           <KPICard
             titulo="Reviews Total"
             valor={reviewsStats?.total || 0}
@@ -214,7 +250,7 @@ export const MainDashboard: React.FC = () => {
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          {/* 🆕 MODIFICADO: Reemplazar "Capacidad Hoy" con "Rating Promedio" */}
+          {/* 🆕 RATING PROMEDIO - MANTENIDO */}
           <KPICard
             titulo="Rating Promedio"
             valor={reviewsStats?.avgRating || 0}
@@ -235,19 +271,20 @@ export const MainDashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 🔥 Charts Row - CON DATOS REALES */}
+      {/* 🔥 Charts Row - CON DATOS REALES Y GRÁFICA MEJORADA */}
       <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
         <Col xs={24} lg={16}>
           <VisitantesChart
             data={visitantesPorDia}
-            loading={loadingDashboard}
-            // 🔥 Props adicionales con datos reales
+            loading={loadingVisitantesExtra || loadingDashboard}  // 🆕 MODIFICADO
             estadisticas={estadisticasVisitantes}
+            estadisticasAgregadas={estadisticasAgregadas}  // 🆕 NUEVO
             insight={insightVisitantes}
+            onWeekChange={handleWeekChange}  // 🆕 NUEVO
           />
         </Col>
         
-        {/* 🔥 Zonas Más Populares - LAYOUT MEJORADO (MANTENIDO IGUAL) */}
+        {/* 🔥 Zonas Más Populares - LAYOUT MEJORADO (MANTENIDO EXACTO) */}
         <Col xs={24} lg={8}>
           <Card 
             title={
@@ -507,7 +544,7 @@ export const MainDashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 🔥 Activity and Reviews Row - ACTIVIDADES CON TIEMPO REAL Y REVIEWS */}
+      {/* 🔥 Activity and Reviews Row - ACTIVIDADES CON TIEMPO REAL Y REVIEWS - MANTENIDO EXACTO */}
       <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
         <Col xs={24} lg={12}>
           <ActivityTimeline
@@ -520,7 +557,7 @@ export const MainDashboard: React.FC = () => {
           />
         </Col>
         <Col xs={24} lg={12}>
-          {/* 🚀 NUEVO COMPONENTE DE REVIEWS - REEMPLAZA LOS SHOWS */}
+          {/* 🚀 COMPONENTE DE REVIEWS - MANTENIDO EXACTO */}
           <ReviewsCard
             reviews={reviews}
             loading={loadingReviews}
@@ -530,29 +567,7 @@ export const MainDashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 🆕 SECCIÓN DE DEBUG (solo en desarrollo) */}
-      {process.env.NODE_ENV === 'development' && (
-        <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
-          <Col span={24}>
-            <Alert
-              message="🛠️ Debug Info - Reviews (Solo en Desarrollo)"
-              description={
-                <div style={{ fontSize: '12px', marginTop: '8px' }}>
-                  <div><strong>Reviews:</strong> {reviews.length} cargados de {reviewsStats?.total || 0} total</div>
-                  <div><strong>Paginación:</strong> {pagination ? `Página ${pagination.page}/${Math.ceil(pagination.total / pagination.limit)}` : 'N/A'}</div>
-                  <div><strong>Last Update:</strong> {lastUpdatedReviews?.toISOString()}</div>
-                  <div><strong>API Status:</strong> {errorReviews ? '❌ Error' : '✅ OK'}</div>
-                  <div><strong>Rating Promedio:</strong> {reviewsStats?.avgRating || 0}</div>
-                  <div><strong>Distribución:</strong> 5⭐({reviewsStats?.distribution[5] || 0}) 4⭐({reviewsStats?.distribution[4] || 0}) 3⭐({reviewsStats?.distribution[3] || 0}) 2⭐({reviewsStats?.distribution[2] || 0}) 1⭐({reviewsStats?.distribution[1] || 0})</div>
-                </div>
-              }
-              type="info"
-              showIcon={false}
-              style={{ background: '#f6f6f6', border: '1px dashed #d9d9d9' }}
-            />
-          </Col>
-        </Row>
-      )}
+      
       
     </DashboardLayout>
   );

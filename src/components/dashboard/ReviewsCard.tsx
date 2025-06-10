@@ -126,11 +126,14 @@ export const ReviewsCard: React.FC<ReviewsCardProps> = ({
       {/* Estadísticas rápidas */}
       {stats && (
         <div style={{ 
+          display: 'flex',
           marginBottom: '20px', 
           padding: '16px', 
           background: '#fafafa', 
           borderRadius: '8px',
-          border: '1px solid #f0f0f0'
+          border: '1px solid #f0f0f0',
+          justifyContent: 'center',
+          gap: '16px'
         }}>
           <Space size="large" wrap>
             <div style={{ textAlign: 'center' }}>
@@ -289,25 +292,8 @@ export const ReviewsCard: React.FC<ReviewsCardProps> = ({
         />
       )}
       
-      {/* Footer con más acciones */}
-      {reviews.length > 0 && onViewAll && (
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: '16px',
-          paddingTop: '16px',
-          borderTop: '1px solid #f0f0f0'
-        }}>
-          <Button 
-            type="primary" 
-            ghost 
-            icon={<EyeOutlined />}
-            onClick={onViewAll}
-            size="small"
-          >
-            Ver todos los reviews
-          </Button>
-        </div>
-      )}
+      
+      
     </Card>
   );
 };

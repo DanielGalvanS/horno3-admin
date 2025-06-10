@@ -1,21 +1,80 @@
-// src/hooks/useDashboardBasic.ts - CORREGIDO 🔧
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-// 🔥 IMPORTAR desde el archivo principal de tipos
-import type { 
-  DashboardStats, 
-  VisitantesPorDia, 
-  ZonaPopular,
-  EstadisticasVisitantes 
-} from '@/types/dashboard';
 
+interface DashboardStats {
+  visitantesHoy: number;
+  visitantesMes: number;
+  visitantesAyer: number;
+  eventosHoy: number;
+  showsHoy: number;
+  laboratoriosHoy: number;
+  capacidadHoy: number;
+  zonasActivas: number;
+  totalZonas: number;
+  duracionPromedio: number;
+  crecimientoVisitantes: number;
+}
+
+interface VisitantesPorDia {
+  fecha: string;
+  visitantes: number;
+  dia_semana: string;
+  dia_numero?: number;
+  duracion_promedio?: number;
+  visitantes_dia_anterior?: number;
+  crecimiento_diario?: number;
+  nivel_actividad?: string;
+  tipo_dia?: string;
+  ranking_visitantes?: number;
+  promedio_movil_3dias?: number;
+  es_dia_pico?: boolean;
+  es_dia_minimo?: boolean;
+}
+
+interface EstadisticasVisitantes {
+  total: number;
+  promedio: number;
+  maximo: number;
+  minimo: number;
+}
+
+interface EstadisticasAgregadas {
+  total_visitantes_semana: number;
+  promedio_diario: number;
+  maximo_dia: number;
+  minimo_dia: number;
+  duracion_promedio_semana: number;
+  total_visitantes_semana_pasada: number;
+  crecimiento_semanal: number;
+  dias_con_actividad: number;
+  dias_sin_actividad: number;
+  mejor_dia: string;
+  peor_dia: string;
+  tendencia_general: 'Creciendo' | 'Decreciendo' | 'Estable';
+}
+
+interface ZonaPopular {
+  id: string;
+  nombre: string;
+  ranking: number;
+  visitas: number;
+  porcentaje: number;
+  nivel: number;
+  categoria: string;
+  duracion: number;
+  actividad?: string;
+  shows?: number;
+  laboratorios?: number;
+  clasificacion?: string;
+}
 
 interface DashboardData {
   kpis: DashboardStats;
   visitantesPorDia: {
     datos: VisitantesPorDia[];
     estadisticas: EstadisticasVisitantes;
+    estadisticasAgregadas?: EstadisticasAgregadas;
     insight: string;
   };
   zonasPopulares: ZonaPopular[];
@@ -61,7 +120,6 @@ export function useDashboardBasic(): UseDashboardBasicReturn {
         throw new Error(result.error || 'Error al obtener datos del dashboard');
       }
 
-      // 🎯 Transformar datos usando tipos importados
       const transformedData: DashboardData = {
         kpis: {
           visitantesHoy: result.data.kpis.visitantesHoy || 0,
@@ -90,7 +148,6 @@ export function useDashboardBasic(): UseDashboardBasicReturn {
       console.error('❌ Error cargando dashboard:', errorMessage);
       setError(errorMessage);
       
-      // 🔄 Datos de fallback con TODOS los campos
       setData({
         kpis: {
           visitantesHoy: 0,
@@ -99,7 +156,7 @@ export function useDashboardBasic(): UseDashboardBasicReturn {
           eventosHoy: 0,
           showsHoy: 0,
           laboratoriosHoy: 0,
-          capacidadHoy: 0,           // ⭐ Este era el que faltaba
+          capacidadHoy: 0,
           zonasActivas: 0,
           totalZonas: 0,
           duracionPromedio: 85,
@@ -117,12 +174,10 @@ export function useDashboardBasic(): UseDashboardBasicReturn {
     }
   }, []);
 
-  // Cargar datos al montar
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh cada 5 minutos
   useEffect(() => {
     const interval = setInterval(() => {
       console.log('🔄 Auto-refresh del dashboard...');

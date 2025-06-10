@@ -3,18 +3,19 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📊 Obteniendo datos básicos del dashboard...');
+    console.log('📊 Obteniendo datos del dashboard con vista dinámica...');
     
     const startTime = Date.now();
 
-    // Ejecutar las 3 queries en paralelo
     const [
       kpisPrincipales,
       visitantes7Dias,
+      estadisticasAgregadas,
       zonasPopulares
     ] = await Promise.all([
       obtenerKPIsPrincipales(),
       obtenerVisitantes7Dias(),
+      obtenerEstadisticasAgregadas(),
       obtenerZonasPopulares()
     ]);
 
@@ -24,7 +25,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         kpis: kpisPrincipales,
-        visitantesPorDia: visitantes7Dias,
+        visitantesPorDia: {
+          datos: visitantes7Dias.datos,
+          estadisticas: visitantes7Dias.estadisticas,
+          estadisticasAgregadas: estadisticasAgregadas,
+          insight: visitantes7Dias.insight
+        },
         zonasPopulares: zonasPopulares,
         metadata: {
           timestamp: new Date().toISOString(),
@@ -33,11 +39,11 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    console.log(`✅ Dashboard básico obtenido en ${processingTime}ms`);
+    console.log(`✅ Dashboard obtenido en ${processingTime}ms`);
     return NextResponse.json(response);
 
   } catch (error: any) {
-    console.error('❌ Error obteniendo dashboard básico:', error);
+    console.error('❌ Error obteniendo dashboard:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -49,7 +55,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 📊 KPIs Principales
 async function obtenerKPIsPrincipales() {
   try {
     const { data, error } = await supabase
@@ -70,22 +75,22 @@ async function obtenerKPIsPrincipales() {
       totalZonas: data?.total_zonas || 0,
       crecimientoVisitantes: data?.crecimiento_visitantes || 0
     };
-
   } catch (error) {
     console.error('❌ Error obteniendo KPIs:', error);
     return {
       visitantesHoy: 0,
+      visitantesAyer: 0,
       eventosHoy: 0,
       showsHoy: 0,
       laboratoriosHoy: 0,
       capacidadHoy: 0,
       zonasActivas: 0,
+      totalZonas: 0,
       crecimientoVisitantes: 0
     };
   }
 }
 
-// 📈 Visitantes últimos 7 días
 async function obtenerVisitantes7Dias() {
   try {
     const { data: visitantes, error } = await supabase
@@ -98,18 +103,37 @@ async function obtenerVisitantes7Dias() {
     const datosGrafico = visitantes?.map(dia => ({
       fecha: dia.fecha,
       visitantes: dia.visitantes || 0,
-      dia: dia.dia_semana,
-      duracionPromedio: dia.duracion_promedio || 0
+      dia_semana: dia.dia_semana,
+      dia_numero: dia.dia_numero,
+      duracion_promedio: dia.duracion_promedio || 0,
+      visitantes_dia_anterior: dia.visitantes_dia_anterior || 0,
+      crecimiento_diario: dia.crecimiento_diario || 0,
+      nivel_actividad: dia.nivel_actividad || 'Sin actividad',
+      tipo_dia: dia.tipo_dia || 'Entre semana',
+      ranking_visitantes: dia.ranking_visitantes || 0,
+      promedio_movil_3dias: dia.promedio_movil_3dias || 0,
+      es_dia_pico: dia.es_dia_pico || false,
+      es_dia_minimo: dia.es_dia_minimo || false
     })) || [];
 
-    // Calcular estadísticas
     const totalVisitantes = datosGrafico.reduce((sum, dia) => sum + dia.visitantes, 0);
     const promedioVisitantes = Math.round(totalVisitantes / Math.max(datosGrafico.length, 1));
     const visitantesArray = datosGrafico.map(d => d.visitantes);
-    const diaMasPopular = datosGrafico.reduce((max, dia) => 
-      dia.visitantes > max.visitantes ? dia : max, 
-      { dia: 'N/A', visitantes: 0 }
-    );
+    
+    const diaPico = datosGrafico.find(d => d.es_dia_pico);
+    const diasSinActividad = datosGrafico.filter(d => d.visitantes === 0).length;
+    
+    let insight = 'No hay datos de visitantes disponibles';
+    if (totalVisitantes > 0) {
+      if (diaPico) {
+        insight = `El día más popular fue ${diaPico.dia_semana} con ${diaPico.visitantes} visitantes`;
+        if (diasSinActividad > 0) {
+          insight += `. ${diasSinActividad} día${diasSinActividad > 1 ? 's' : ''} sin actividad`;
+        }
+      } else {
+        insight = `Total de ${totalVisitantes} visitantes en la semana`;
+      }
+    }
 
     return {
       datos: datosGrafico,
@@ -119,9 +143,7 @@ async function obtenerVisitantes7Dias() {
         maximo: Math.max(...visitantesArray, 0),
         minimo: Math.min(...visitantesArray, 0)
       },
-      insight: totalVisitantes > 0 ? 
-      `El día más popular fue ${diaMasPopular.dia} con ${diaMasPopular.visitantes} visitantes` :
-        'No hay datos de visitantes disponibles'
+      insight: insight
     };
 
   } catch (error) {
@@ -134,7 +156,38 @@ async function obtenerVisitantes7Dias() {
   }
 }
 
-// 🏆 Zonas más populares
+async function obtenerEstadisticasAgregadas() {
+  try {
+    const { data: stats, error } = await supabase
+      .from('vista_estadisticas_visitantes')
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('⚠️ Vista de estadísticas no disponible');
+      return null;
+    }
+
+    return {
+      total_visitantes_semana: stats?.total_visitantes_semana || 0,
+      promedio_diario: parseFloat(stats?.promedio_diario || '0'),
+      maximo_dia: stats?.maximo_dia || 0,
+      minimo_dia: stats?.minimo_dia || 0,
+      duracion_promedio_semana: stats?.duracion_promedio_semana || 0,
+      total_visitantes_semana_pasada: stats?.total_visitantes_semana_pasada || 0,
+      crecimiento_semanal: parseFloat(stats?.crecimiento_semanal || '0'),
+      dias_con_actividad: stats?.dias_con_actividad || 0,
+      dias_sin_actividad: stats?.dias_sin_actividad || 0,
+      mejor_dia: stats?.mejor_dia || 'N/A',
+      peor_dia: stats?.peor_dia || 'N/A',
+      tendencia_general: stats?.tendencia_general || 'Estable'
+    };
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas agregadas:', error);
+    return null;
+  }
+}
+
 async function obtenerZonasPopulares() {
   try {
     const { data: zonas, error } = await supabase
@@ -148,8 +201,8 @@ async function obtenerZonasPopulares() {
       id: zona.id,
       nombre: zona.nombre,
       ranking: zona.ranking,
-      visitas: zona.visitas, // eventos_activos
-      porcentaje: zona.porcentaje, // score_real
+      visitas: zona.visitas,
+      porcentaje: zona.porcentaje,
       nivel: zona.nivel,
       categoria: zona.categoria,
       duracion: zona.duracion,
@@ -158,7 +211,6 @@ async function obtenerZonasPopulares() {
       laboratorios: zona.laboratorios || 0,
       clasificacion: zona.clasificacion
     })) || [];
-
   } catch (error) {
     console.error('❌ Error obteniendo zonas populares:', error);
     return [];
