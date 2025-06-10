@@ -382,7 +382,7 @@ const AuthRegister = ({ title, subtitle, subtext }: AuthRegisterProps) => {
                 Creando cuenta...
               </>
             ) : (
-              'Crear Cuenta de Administrador'
+              'Crear Cuenta'
             )}
           </Button>
         </Stack>

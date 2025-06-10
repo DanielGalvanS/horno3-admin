@@ -8,6 +8,7 @@ import {
   Typography,
   Chip,
 } from "@mui/material";
+import { UserOutlined } from "@ant-design/icons";
 import { IconLogout, IconUser, IconShieldCheck } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -58,10 +59,7 @@ const Profile = () => {
       </Box>
 
       {/* Botón de Logout */}
-      <Tooltip 
-        title={isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"} 
-        placement="bottom"
-      >
+      
         <IconButton
           onClick={handleLogout}
           disabled={isLoggingOut}
@@ -89,26 +87,22 @@ const Profile = () => {
             <IconLogout size={20} />
           )}
         </IconButton>
-      </Tooltip>
 
       {/* Avatar del usuario */}
       <Avatar
-        src="/images/profile/user-1.jpg"
         alt={user.name}
         sx={{
           width: 35,
           height: 35,
           opacity: isLoggingOut ? 0.7 : 1,
           transition: 'opacity 0.3s ease',
-          border: isAdmin ? '2px solid' : 'none',
-          borderColor: 'primary.main',
           cursor: 'pointer',
           '&:hover': {
             transform: 'scale(1.05)',
           }
         }}
       >
-        {!user.name ? <IconUser size={20} /> : user.name.charAt(0).toUpperCase()}
+        <UserOutlined />
       </Avatar>
     </Box>
   );

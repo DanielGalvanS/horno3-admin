@@ -18,28 +18,25 @@ import {
   SettingOutlined,
   ReadOutlined,
   ExperimentOutlined,
-  PictureOutlined
+  PictureOutlined,
+  MessageOutlined,  // 🆕 AGREGADO
+  StarOutlined      // 🆕 AGREGADO
 } from '@ant-design/icons';
 
 import { DashboardLayout } from './DashboardLayout';
 import { KPICard } from './KPICard';
 import { ActivityTimeline } from './ActivityTimeline';
 import { VisitantesChart } from './VisitantesChart';
+import { ReviewsCard } from './ReviewsCard';  // 🆕 AGREGADO
 import { useActividades } from '@/hooks/useActividades';
-import { useDashboardBasic } from '@/hooks/useDashboardBasic'; // 🔥 HOOK REAL
+import { useDashboardBasic } from '@/hooks/useDashboardBasic';
+import { useReviews } from '@/hooks/useReviews';  // 🆕 AGREGADO
 import type { DashboardStats,ShowProximo } from '@/types/dashboard';
 
 const { Text, Title } = Typography;
 
-// ✅ Solo datos de shows que no están en la BD aún (ejemplo)
-const showsProximosEjemplo: ShowProximo[] = [
-  { id: '1', nombre: 'Forja en Vivo', hora: '14:30', zona: 'Hornos Tradicionales', ocupacion: 8, capacidadMaxima: 15, estado: 'programado' },
-  { id: '2', nombre: 'Historia Interactiva', hora: '15:00', zona: 'Sala Principal', ocupacion: 12, capacidadMaxima: 20, estado: 'programado' },
-  { id: '3', nombre: 'Taller de Metales', hora: '16:00', zona: 'Zona Educativa', ocupacion: 5, capacidadMaxima: 10, estado: 'programado' },
-];
-
 export const MainDashboard: React.FC = () => {
-  // 🔥 HOOKS REALES
+  // 🔥 HOOKS EXISTENTES
   const {
     data: dashboardData,
     loading: loadingDashboard,
@@ -58,15 +55,30 @@ export const MainDashboard: React.FC = () => {
     totalActividades
   } = useActividades(12);
 
+  // 🆕 NUEVO HOOK PARA REVIEWS
+  const {
+    reviews,
+    stats: reviewsStats,
+    loading: loadingReviews,
+    error: errorReviews,
+    refetch: refetchReviews,
+    lastUpdated: lastUpdatedReviews,
+    pagination
+  } = useReviews({
+    limit: 8,
+    autoRefresh: false,
+    refreshInterval: 60000
+  });
+
   // 🎯 Datos reales o fallback - COMPLETO CON TODOS LOS CAMPOS
   const stats: DashboardStats = dashboardData?.kpis || {
     visitantesHoy: 0,
-    visitantesMes: 0,           // 🆕 Faltaba
-    visitantesAyer: 0,          // 🆕 Faltaba
+    visitantesMes: 0,
+    visitantesAyer: 0,
     eventosHoy: 0,
     showsHoy: 0,
     laboratoriosHoy: 0,
-    capacidadHoy: 0,            // 🆕 Faltaba - ¡Este era el problema!
+    capacidadHoy: 0,
     zonasActivas: 0,
     totalZonas: 0,
     duracionPromedio: 85,
@@ -77,6 +89,36 @@ export const MainDashboard: React.FC = () => {
   const zonasPopulares = dashboardData?.zonasPopulares || [];
   const estadisticasVisitantes = dashboardData?.visitantesPorDia?.estadisticas;
   const insightVisitantes = dashboardData?.visitantesPorDia?.insight;
+
+  // 🆕 HANDLERS PARA REVIEWS
+  const handleViewAllReviews = () => {
+    // Aquí puedes navegar a tu página de reviews completa
+    // router.push('/admin/reviews');
+    console.log('🔗 Ver todos los reviews');
+  };
+
+  const handleViewReview = (reviewId: string) => {
+    // Aquí puedes navegar a un review específico
+    // router.push(`/admin/reviews/${reviewId}`);
+    console.log(`🔍 Ver review: ${reviewId}`);
+  };
+
+  // 🆕 HANDLER MODIFICADO PARA ACTUALIZAR TODO
+  const handleRefreshAll = async () => {
+    console.log('🔄 Actualizando todo el dashboard...');
+    
+    try {
+      await Promise.all([
+        refetchDashboard(),
+        refetchActividades(),
+        refetchReviews()  // 🆕 AGREGADO
+      ]);
+      
+      console.log('✅ Dashboard completamente actualizado');
+    } catch (error) {
+      console.error('❌ Error actualizando dashboard:', error);
+    }
+  };
 
   return (
     <DashboardLayout
@@ -91,23 +133,20 @@ export const MainDashboard: React.FC = () => {
           >
             Actualizar Dashboard
           </Button>
-          {/* 🔥 Botón para actualizar actividades */}
+          {/* 🆕 NUEVO BOTÓN PARA REVIEWS */}
           <Button 
-            icon={<ReloadOutlined />}
-            onClick={refetchActividades}
-            loading={loadingActividades}
+            icon={<MessageOutlined />}
+            onClick={refetchReviews}
+            loading={loadingReviews}
             style={{ borderRadius: '8px' }}
           >
-            Actualizar Actividades
+            Actualizar Reviews
           </Button>
           <Button 
             type="primary"
             icon={<ReloadOutlined />}
-            onClick={() => {
-              refetchDashboard();
-              refetchActividades();
-            }}
-            loading={loadingDashboard || loadingActividades}
+            onClick={handleRefreshAll}  // 🆕 MODIFICADO para incluir reviews
+            loading={loadingDashboard || loadingActividades || loadingReviews}  // 🆕 MODIFICADO
             style={{ borderRadius: '8px' }}
           >
             Actualizar Todo
@@ -115,30 +154,7 @@ export const MainDashboard: React.FC = () => {
         </Space>
       }
     >
-      {/* 🔥 MOSTRAR ESTADO DE CONEXIÓN CON BD */}
-      {!errorDashboard && dashboardData && (
-        <Alert
-          message="¡Conectado a Base de Datos Real!"
-          description={`Datos actualizados desde Supabase • ${lastUpdatedDashboard?.toLocaleString('es-ES')}`}
-          type="success"
-          showIcon
-          icon={<WifiOutlined />}
-          style={{ marginBottom: '24px' }}
-          banner
-        />
-      )}
-
-      {/* 🔥 MOSTRAR ESTADO DEL TIEMPO REAL DE ACTIVIDADES */}
-      {isRealtime && (
-        <Alert
-          message="¡Sistema en Tiempo Real Activo!"
-          description="Las actividades del museo aparecen instantáneamente"
-          type="info"
-          showIcon
-          style={{ marginBottom: '24px' }}
-          banner
-        />
-      )}
+     
 
       {/* ⚠️ MOSTRAR ERRORES */}
       {errorDashboard && (
@@ -163,7 +179,19 @@ export const MainDashboard: React.FC = () => {
         />
       )}
 
-      {/* 🔥 KPIs Row - CON DATOS REALES */}
+      {/* 🆕 ERROR DE REVIEWS */}
+      {errorReviews && (
+        <Alert
+          message="Error de Reviews API"
+          description={`${errorReviews} - Reviews no disponibles temporalmente`}
+          type="warning"
+          showIcon
+          style={{ marginBottom: '24px' }}
+          closable
+        />
+      )}
+
+      {/* 🔥 KPIs Row - CON DATOS REALES Y REVIEWS */}
       <Row gutter={[24, 24]} className="kpi-row">
         <Col xs={24} sm={12} lg={6}>
           <KPICard
@@ -175,22 +203,25 @@ export const MainDashboard: React.FC = () => {
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
+          {/* 🆕 MODIFICADO: Reemplazar "Eventos Hoy" con "Reviews Total" */}
           <KPICard
-            titulo="Eventos Hoy"
-            valor={stats.eventosHoy}
-            icono={<PlayCircleOutlined />}
-            color="#52c41a"
-            loading={loadingDashboard}
+            titulo="Reviews Total"
+            valor={reviewsStats?.total || 0}
+            cambio={reviewsStats?.trends.percentageChange}
+            icono={<MessageOutlined />}
+            color="#1677ff"
+            loading={loadingReviews}
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
+          {/* 🆕 MODIFICADO: Reemplazar "Capacidad Hoy" con "Rating Promedio" */}
           <KPICard
-            titulo="Capacidad Hoy"
-            valor={stats.capacidadHoy}
-            sufijo=" personas"
-            icono={<ClockCircleOutlined />}
-            color="#1677ff"
-            loading={loadingDashboard}
+            titulo="Rating Promedio"
+            valor={reviewsStats?.avgRating || 0}
+            sufijo="⭐"
+            icono={<StarOutlined />}
+            color="#faad14"
+            loading={loadingReviews}
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -216,7 +247,7 @@ export const MainDashboard: React.FC = () => {
           />
         </Col>
         
-        {/* 🔥 Zonas Más Populares - LAYOUT MEJORADO */}
+        {/* 🔥 Zonas Más Populares - LAYOUT MEJORADO (MANTENIDO IGUAL) */}
         <Col xs={24} lg={8}>
           <Card 
             title={
@@ -476,7 +507,7 @@ export const MainDashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 🔥 Activity and Shows Row - ACTIVIDADES CON TIEMPO REAL */}
+      {/* 🔥 Activity and Reviews Row - ACTIVIDADES CON TIEMPO REAL Y REVIEWS */}
       <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
         <Col xs={24} lg={12}>
           <ActivityTimeline
@@ -489,100 +520,40 @@ export const MainDashboard: React.FC = () => {
           />
         </Col>
         <Col xs={24} lg={12}>
-          {/* ✅ Próximos Shows - EJEMPLO (hasta tener vista real) */}
-          <Card 
-            title={
-              <Space>
-                <CalendarOutlined style={{ color: '#FF6B35' }} />
-                <span>Próximos Shows</span>
-                <Tag color="orange">EJEMPLO</Tag>
-              </Space>
-            }
-            className="chart-card"
-            loading={false}
-          >
-            <List
-              dataSource={showsProximosEjemplo}
-              renderItem={(show) => (
-                <List.Item style={{ padding: '16px 0' }}>
-                  <div style={{ width: '100%' }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'flex-start',
-                      marginBottom: '8px' 
-                    }}>
-                      <div>
-                        <Title level={5} style={{ margin: 0, fontSize: '16px' }}>
-                          {show.nombre}
-                        </Title>
-                        <Text type="secondary" style={{ fontSize: '13px' }}>
-                          {show.zona}
-                        </Text>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <Text strong style={{ fontSize: '16px', color: '#FF6B35' }}>
-                          {show.hora}
-                        </Text>
-                        <br />
-                        <Tag color="blue" style={{ margin: 0 }}>
-                          {show.estado}
-                        </Tag>
-                      </div>
-                    </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center' 
-                    }}>
-                      <Text style={{ fontSize: '13px' }}>
-                        Ocupación: {show.ocupacion}/{show.capacidadMaxima}
-                      </Text>
-                      <Progress
-                        percent={(show.ocupacion / show.capacidadMaxima) * 100}
-                        size="small"
-                        style={{ width: '100px' }}
-                        strokeColor="#52c41a"
-                      />
-                    </div>
-                  </div>
-                </List.Item>
-              )}
-            />
-          </Card>
+          {/* 🚀 NUEVO COMPONENTE DE REVIEWS - REEMPLAZA LOS SHOWS */}
+          <ReviewsCard
+            reviews={reviews}
+            loading={loadingReviews}
+            onViewAll={handleViewAllReviews}
+            onViewReview={handleViewReview}
+          />
         </Col>
       </Row>
 
-      {/* 🆕 FOOTER CON INFORMACIÓN DETALLADA */}
-      <div style={{
-        marginTop: '24px',
-        padding: '16px',
-        background: '#fafafa',
-        borderRadius: '8px',
-        textAlign: 'center',
-        border: '1px solid #f0f0f0'
-      }}>
-        <Row gutter={16}>
-          <Col span={8}>
-            <Text style={{ fontSize: '12px', color: '#666' }}>
-              📊 <strong>Dashboard:</strong> {lastUpdatedDashboard?.toLocaleString('es-ES') || 'Cargando...'} 
-              {errorDashboard ? ' (Error)' : ' (Conectado)'}
-            </Text>
-          </Col>
-          <Col span={8}>
-            <Text style={{ fontSize: '12px', color: '#666' }}>
-              🔥 <strong>Actividades:</strong> {isRealtime ? 'Tiempo Real Activo' : 'Modo Histórico'} • 
-              Total: {totalActividades}
-            </Text>
-          </Col>
-          <Col span={8}>
-            <Text style={{ fontSize: '12px', color: '#666' }}>
-              💾 <strong>Fuente:</strong> Supabase PostgreSQL • 
-              Zonas: {zonasPopulares.length} con eventos
-            </Text>
+      {/* 🆕 SECCIÓN DE DEBUG (solo en desarrollo) */}
+      {process.env.NODE_ENV === 'development' && (
+        <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
+          <Col span={24}>
+            <Alert
+              message="🛠️ Debug Info - Reviews (Solo en Desarrollo)"
+              description={
+                <div style={{ fontSize: '12px', marginTop: '8px' }}>
+                  <div><strong>Reviews:</strong> {reviews.length} cargados de {reviewsStats?.total || 0} total</div>
+                  <div><strong>Paginación:</strong> {pagination ? `Página ${pagination.page}/${Math.ceil(pagination.total / pagination.limit)}` : 'N/A'}</div>
+                  <div><strong>Last Update:</strong> {lastUpdatedReviews?.toISOString()}</div>
+                  <div><strong>API Status:</strong> {errorReviews ? '❌ Error' : '✅ OK'}</div>
+                  <div><strong>Rating Promedio:</strong> {reviewsStats?.avgRating || 0}</div>
+                  <div><strong>Distribución:</strong> 5⭐({reviewsStats?.distribution[5] || 0}) 4⭐({reviewsStats?.distribution[4] || 0}) 3⭐({reviewsStats?.distribution[3] || 0}) 2⭐({reviewsStats?.distribution[2] || 0}) 1⭐({reviewsStats?.distribution[1] || 0})</div>
+                </div>
+              }
+              type="info"
+              showIcon={false}
+              style={{ background: '#f6f6f6', border: '1px dashed #d9d9d9' }}
+            />
           </Col>
         </Row>
-      </div>
+      )}
+      
     </DashboardLayout>
   );
 };
