@@ -93,7 +93,7 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       title: 'Imagen',
       dataIndex: 'imagen_url',
       key: 'imagen',
-      width: 80,
+      width: 90,
       render: (imagen_url: string | null) => (
         imagen_url ? (
           <Image
@@ -130,7 +130,7 @@ export const SeccionesTable: React.FC<SeccionesTableProps> = ({
       title: 'Estado',
       dataIndex: 'activo',
       key: 'activo',
-      width: 80,
+      width: 100,
       filters: [
         { text: 'Activo', value: true },
         { text: 'Inactivo', value: false },

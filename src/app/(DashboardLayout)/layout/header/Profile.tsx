@@ -1,114 +1,115 @@
 import React, { useState } from "react";
-import Link from "next/link";
 import {
   Avatar,
   Box,
-  Menu,
-  Button,
   IconButton,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
   CircularProgress,
+  Tooltip,
+  Typography,
+  Chip,
 } from "@mui/material";
-
-import { IconListCheck, IconMail, IconUser } from "@tabler/icons-react";
-
+import { IconLogout, IconUser, IconShieldCheck } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const Profile = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, isAdmin } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [anchorEl2, setAnchorEl2] = useState(null);
-  const handleClick2 = (event: any) => {
-    setAnchorEl2(event.currentTarget);
-  };
-  const handleClose2 = () => {
-    setAnchorEl2(null);
-  };
 
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevenir múltiples clicks
+
+    setIsLoggingOut(true);
+    
     try {
-      setIsLoggingOut(true);
+      console.log('🚪 Iniciando logout desde Profile...');
       await logout();
-      handleClose2(); 
+      
     } catch (error) {
-      console.error('Error during logout:', error);
-      setIsLoggingOut(false);
+      console.error('❌ Error durante logout:', error);
+      
+      // En caso de error, forzar redirect
+      window.location.replace('/authentication/login');
     }
+    
+    // No resetear isLoggingOut porque queremos que se mantenga
+    // hasta que se complete el redirect
   };
 
+  if (!user) {
+    return null; // No mostrar nada si no hay usuario
+  }
+
   return (
-    <Box>
-      <IconButton
-        size="large"
-        aria-label="show 11 new notifications"
-        color="inherit"
-        aria-controls="msgs-menu"
-        aria-haspopup="true"
-        sx={{
-          ...(typeof anchorEl2 === "object" && {
-            color: "primary.main",
-          }),
-        }}
-        onClick={handleClick2}
-      >
-        <Avatar
-          src="/images/profile/user-1.jpg"
-          alt="image"
-          sx={{
-            width: 35,
-            height: 35,
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {/* Información del usuario */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            fontWeight: 600,
+            color: 'text.primary',
+            lineHeight: 1.2
           }}
-        />
-      </IconButton>
-      {/* ------------------------------------------- */}
-      {/* Message Dropdown */}
-      {/* ------------------------------------------- */}
-      <Menu
-        id="msgs-menu"
-        anchorEl={anchorEl2}
-        keepMounted
-        open={Boolean(anchorEl2)}
-        onClose={handleClose2}
-        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        >
+          {user.name}
+        </Typography>
+        
+        
+      </Box>
+
+      {/* Botón de Logout */}
+      <Tooltip 
+        title={isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"} 
+        placement="bottom"
+      >
+        <IconButton
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          color="inherit"
+          sx={{
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              transform: 'scale(1.05)',
+            },
+            '&:disabled': {
+              opacity: 0.7,
+            },
+          }}
+        >
+          {isLoggingOut ? (
+            <CircularProgress 
+              size={20} 
+              color="inherit" 
+              sx={{ 
+                animation: 'spin 1s linear infinite' 
+              }} 
+            />
+          ) : (
+            <IconLogout size={20} />
+          )}
+        </IconButton>
+      </Tooltip>
+
+      {/* Avatar del usuario */}
+      <Avatar
+        src="/images/profile/user-1.jpg"
+        alt={user.name}
         sx={{
-          "& .MuiMenu-paper": {
-            width: "200px",
-          },
+          width: 35,
+          height: 35,
+          opacity: isLoggingOut ? 0.7 : 1,
+          transition: 'opacity 0.3s ease',
+          border: isAdmin ? '2px solid' : 'none',
+          borderColor: 'primary.main',
+          cursor: 'pointer',
+          '&:hover': {
+            transform: 'scale(1.05)',
+          }
         }}
       >
-        <MenuItem>
-          <ListItemIcon>
-            <IconUser width={20} />
-          </ListItemIcon>
-          <ListItemText>My Profile</ListItemText>
-        </MenuItem>
-        <MenuItem>
-          <ListItemIcon>
-            <IconMail width={20} />
-          </ListItemIcon>
-          <ListItemText>My Account</ListItemText>
-        </MenuItem>
-        <MenuItem>
-          <ListItemIcon>
-            <IconListCheck width={20} />
-          </ListItemIcon>
-          <ListItemText>My Tasks</ListItemText>
-        </MenuItem>
-        <Box mt={1} py={1} px={2}>
-          <Button
-            onClick={handleLogout}
-            variant="outlined"
-            color="primary"
-            fullWidth
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? (<CircularProgress size={24} color="inherit" />) : ('Logout')}
-          </Button>
-        </Box>
-      </Menu>
+        {!user.name ? <IconUser size={20} /> : user.name.charAt(0).toUpperCase()}
+      </Avatar>
     </Box>
   );
 };

@@ -52,16 +52,7 @@ const Menuitems = [
     icon: IconNewSection,
     href: "/admin/noticias",
   },
-  {
-    navlabel: true,
-    subheader: " EXTRA",
-  },
-  {
-    id: uniqueId(),
-    title: "Settings",
-    icon: Settings,
-    href: "/icons",
-  },
+  
 
 ];
 

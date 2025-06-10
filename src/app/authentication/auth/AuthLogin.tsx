@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -11,53 +11,128 @@ import {
   Checkbox,
   Alert,
   CircularProgress,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
+import { Visibility, VisibilityOff, AdminPanelSettings } from "@mui/icons-material";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import CustomTextField from "@/app/(DashboardLayout)/components/forms/theme-elements/CustomTextField";
 
-interface loginType {
+interface AuthLoginProps {
   title?: string;
   subtitle?: React.ReactNode;
   subtext?: React.ReactNode;
 }
 
-const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [rememberDevice, setRememberDevice] = useState<boolean>(false);
+const AuthLogin = ({ title, subtitle, subtext }: AuthLoginProps) => {
+  // Estados del formulario
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    rememberDevice: false
+  });
+  
+  const [formErrors, setFormErrors] = useState({
+    email: '',
+    password: ''
+  });
+  
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login, loading } = useAuth();
+  const { login, loading: authLoading, isAuthenticated } = useAuth();
 
+  // Limpiar errores cuando el usuario escribe
+  useEffect(() => {
+    if (error) {
+      setError('');
+    }
+    if (formErrors.email || formErrors.password) {
+      setFormErrors({ email: '', password: '' });
+    }
+  }, [formData.email, formData.password]);
+
+  // Validación del formulario
+  const validateForm = (): boolean => {
+    const errors = { email: '', password: '' };
+    let isValid = true;
+
+    // Validar email
+    if (!formData.email) {
+      errors.email = 'El email es obligatorio';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Ingresa un email válido';
+      isValid = false;
+    }
+
+    // Validar password
+    if (!formData.password) {
+      errors.password = 'La contraseña es obligatoria';
+      isValid = false;
+    } else if (formData.password.length < 6) {
+      errors.password = 'La contraseña debe tener al menos 6 caracteres';
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
+  // Manejar envío del formulario
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    
+    // Prevenir envíos múltiples
+    if (isSubmitting || authLoading) return;
 
-    if (!email || !password) {
-      setError('Por favor completa todos los campos');
+    setError('');
+    
+    // Validar formulario
+    if (!validateForm()) {
       return;
     }
 
-    const result = await login(email, password);
-    
-    if (!result.success) {
-      setError(result.error || 'Error al iniciar sesión');
+    setIsSubmitting(true);
+
+    try {
+      console.log('🔐 Intentando login...');
+      
+      const result = await login(formData.email.trim(), formData.password);
+      
+      if (!result.success) {
+        setError(result.error || 'Error al iniciar sesión');
+        
+        // Limpiar contraseña en caso de error
+        setFormData(prev => ({ ...prev, password: '' }));
+      }
+      // Si es exitoso, el AuthContext maneja la redirección
+      
+    } catch (error: any) {
+      console.error('❌ Error en login:', error);
+      setError('Error inesperado. Intenta de nuevo.');
+      setFormData(prev => ({ ...prev, password: '' }));
+    } finally {
+      setIsSubmitting(false);
     }
-    // Si es exitoso, el hook useAuth ya redirige automáticamente
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
+  // Manejar cambios en inputs
+  const handleInputChange = (field: keyof typeof formData) => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = field === 'rememberDevice' ? e.target.checked : e.target.value;
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
+  // Toggle visibilidad de contraseña
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
-  const handleRememberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRememberDevice(e.target.checked);
-  };
+  const isLoading = isSubmitting || authLoading;
 
   return (
     <>
@@ -69,6 +144,7 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
 
       {subtext}
 
+
       {/* Mostrar errores */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -76,8 +152,9 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
         </Alert>
       )}
 
-      <Box component="form" onSubmit={handleSubmit}>
-        <Stack>
+      <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Stack spacing={2}>
+          {/* Campo Email */}
           <Box>
             <Typography
               variant="subtitle1"
@@ -86,20 +163,25 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
               htmlFor="email"
               mb="5px"
             >
-              Email
+              Email *
             </Typography>
             <CustomTextField 
               id="email"
               type="email"
               variant="outlined" 
               fullWidth 
-              value={email}
-              onChange={handleEmailChange}
-              disabled={loading}
-              required
+              value={formData.email}
+              onChange={handleInputChange('email')}
+              disabled={isLoading}
+              error={!!formErrors.email}
+              helperText={formErrors.email}
+              placeholder="admin@ejemplo.com"
+              autoComplete="email"
             />
           </Box>
-          <Box mt="25px">
+
+          {/* Campo Contraseña */}
+          <Box>
             <Typography
               variant="subtitle1"
               fontWeight={600}
@@ -107,68 +189,83 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
               htmlFor="password"
               mb="5px"
             >
-              Password
+              Contraseña *
             </Typography>
             <CustomTextField 
               id="password"
-              type="password" 
+              type={showPassword ? "text" : "password"}
               variant="outlined" 
               fullWidth 
-              value={password}
-              onChange={handlePasswordChange}
-              disabled={loading}
-              required
+              value={formData.password}
+              onChange={handleInputChange('password')}
+              disabled={isLoading}
+              error={!!formErrors.password}
+              helperText={formErrors.password}
+              placeholder="Ingresa tu contraseña"
+              autoComplete="current-password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={togglePasswordVisibility}
+                      edge="end"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Box>
+
+          {/* Recordar dispositivo */}
           <Stack
             justifyContent="space-between"
             direction="row"
             alignItems="center"
-            my={2}
           >
             <FormGroup>
               <FormControlLabel
                 control={
                   <Checkbox 
-                    checked={rememberDevice}
-                    onChange={handleRememberChange}
-                    disabled={loading}
+                    checked={formData.rememberDevice}
+                    onChange={handleInputChange('rememberDevice')}
+                    disabled={isLoading}
                   />
                 }
-                label="Remember this Device"
+                label="Recordar este dispositivo"
               />
             </FormGroup>
-            <Typography
-              component={Link}
-              href="/authentication/forgot-password"
-              fontWeight="500"
-              sx={{
-                textDecoration: "none",
-                color: "primary.main",
-              }}
-            >
-              Forgot Password ?
-            </Typography>
           </Stack>
-        </Stack>
-        <Box>
+
+          {/* Botón de envío */}
           <Button
             color="primary"
             variant="contained"
             size="large"
             fullWidth
             type="submit"
-            disabled={loading}
-            sx={{ mb: 2 }}
+            disabled={isLoading}
+            sx={{ 
+              py: 1.5,
+              fontSize: '1rem',
+              fontWeight: 600
+            }}
           >
-            {loading ? (
-              <CircularProgress size={24} color="inherit" />
+            {isLoading ? (
+              <>
+                <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                Iniciando sesión...
+              </>
             ) : (
-              'Sign In'
+              'Iniciar Sesión'
             )}
           </Button>
-        </Box>
+        </Stack>
       </Box>
+
       {subtitle}
     </>
   );

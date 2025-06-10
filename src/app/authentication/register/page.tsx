@@ -51,7 +51,7 @@ const Register2 = () => (
                   variant="subtitle1"
                   textAlign="center"
                   color="textSecondary"
-                  mb={1}
+                  mb={3}
                 >
                   Panel de Administración
                 </Typography>
@@ -73,7 +73,7 @@ const Register2 = () => (
                   <Typography
                     component={Link}
                     href="/authentication/login"
-                    fontWeight="500"
+                    fontWeight="100"
                     sx={{
                       textDecoration: "none",
                       color: "primary.main",

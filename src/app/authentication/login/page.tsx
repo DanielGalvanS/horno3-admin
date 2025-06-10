@@ -53,7 +53,7 @@ const Login2 = () => {
                     variant="subtitle1"
                     textAlign="center"
                     color="textSecondary"
-                    mb={1}
+                    mb={3}
                   >
                     Panel de Administración
                   </Typography>
@@ -68,7 +68,7 @@ const Login2 = () => {
                     <Typography
                       color="textSecondary"
                       variant="h6"
-                      fontWeight="500"
+                      fontWeight="100"
                     >
                       Don&apos;t have an account?
                     </Typography>

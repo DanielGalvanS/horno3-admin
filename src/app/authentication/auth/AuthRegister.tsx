@@ -1,216 +1,396 @@
 'use client'
 
-import React, { useState } from 'react';
-import { Box, Typography, Button, Alert, CircularProgress } from '@mui/material';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  Alert, 
+  CircularProgress,
+  Stack,
+  InputAdornment,
+  IconButton
+} from '@mui/material';
+import { Visibility, VisibilityOff, AdminPanelSettings } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
 import CustomTextField from '@/app/(DashboardLayout)/components/forms/theme-elements/CustomTextField';
-import { Stack } from '@mui/system';
 
-interface registerType {
-    title?: string;
-    subtitle?: React.ReactNode;
-    subtext?: React.ReactNode;
+interface AuthRegisterProps {
+  title?: string;
+  subtitle?: React.ReactNode;
+  subtext?: React.ReactNode;
 }
 
-const AuthRegister = ({ title, subtitle, subtext }: registerType) => {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
+const AuthRegister = ({ title, subtitle, subtext }: AuthRegisterProps) => {
+  // Estados del formulario
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const [formErrors, setFormErrors] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { register, loading: authLoading } = useAuth();
+
+  // Limpiar errores cuando el usuario escribe
+  useEffect(() => {
+    if (error || success) {
+      setError('');
+      setSuccess('');
+    }
+    
+    // Limpiar errores específicos del campo que está siendo editado
+    const newErrors = { ...formErrors };
+    let hasChanges = false;
+
+    Object.keys(formData).forEach(key => {
+      if (formErrors[key as keyof typeof formErrors] && formData[key as keyof typeof formData]) {
+        newErrors[key as keyof typeof formErrors] = '';
+        hasChanges = true;
+      }
     });
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
 
-    const { register, loading } = useAuth();
-    const router = useRouter();
+    if (hasChanges) {
+      setFormErrors(newErrors);
+    }
+  }, [formData]);
 
-    const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: e.target.value
-        }));
+  // Validación completa del formulario
+  const validateForm = (): boolean => {
+    const errors = {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
     };
+    let isValid = true;
 
-    const validateForm = () => {
-        if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-            setError('Por favor completa todos los campos');
-            return false;
-        }
+    // Validar nombre
+    if (!formData.name.trim()) {
+      errors.name = 'El nombre es obligatorio';
+      isValid = false;
+    } else if (formData.name.trim().length < 2) {
+      errors.name = 'El nombre debe tener al menos 2 caracteres';
+      isValid = false;
+    } else if (formData.name.trim().length > 50) {
+      errors.name = 'El nombre no puede tener más de 50 caracteres';
+      isValid = false;
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.name.trim())) {
+      errors.name = 'El nombre solo puede contener letras y espacios';
+      isValid = false;
+    }
 
-        if (formData.password !== formData.confirmPassword) {
-            setError('Las contraseñas no coinciden');
-            return false;
-        }
+    // Validar email
+    if (!formData.email.trim()) {
+      errors.email = 'El email es obligatorio';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errors.email = 'Ingresa un email válido';
+      isValid = false;
+    }
 
-        if (formData.password.length < 6) {
-            setError('La contraseña debe tener al menos 6 caracteres');
-            return false;
-        }
+    // Validar contraseña
+    if (!formData.password) {
+      errors.password = 'La contraseña es obligatoria';
+      isValid = false;
+    } else if (formData.password.length < 6) {
+      errors.password = 'La contraseña debe tener al menos 6 caracteres';
+      isValid = false;
+    } else if (formData.password.length > 100) {
+      errors.password = 'La contraseña no puede tener más de 100 caracteres';
+      isValid = false;
+    } else if (!/(?=.*[a-zA-Z])/.test(formData.password)) {
+      errors.password = 'La contraseña debe contener al menos una letra';
+      isValid = false;
+    }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email)) {
-            setError('Por favor ingresa un email válido');
-            return false;
-        }
+    // Validar confirmación de contraseña
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Confirma tu contraseña';
+      isValid = false;
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Las contraseñas no coinciden';
+      isValid = false;
+    }
 
-        return true;
-    };
+    setFormErrors(errors);
+    return isValid;
+  };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
+  // Manejar envío del formulario
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Prevenir envíos múltiples
+    if (isSubmitting || authLoading) return;
 
-        if (!validateForm()) {
-            return;
-        }
+    setError('');
+    setSuccess('');
 
-        const result = await register(formData.email, formData.password, formData.name);
+    // Validar formulario
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      console.log('📝 Intentando registro...');
+      
+      const result = await register(
+        formData.email.trim(),
+        formData.password,
+        formData.name.trim()
+      );
+      
+      if (result.success) {
+        setSuccess('¡Cuenta de administrador creada exitosamente!');
         
-        if (result.success) {
-            setSuccess('¡Cuenta creada exitosamente!');
-            setFormData({
-                name: '',
-                email: '',
-                password: '',
-                confirmPassword: ''
-            });
-        } else {
-            setError(result.error || 'Error al crear la cuenta');
-        }
-    };
+        // Limpiar formulario
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        });
+        
+        // El AuthContext maneja la redirección automáticamente
+      } else {
+        setError(result.error || 'Error al crear la cuenta');
+        
+        // Limpiar contraseñas en caso de error
+        setFormData(prev => ({ 
+          ...prev, 
+          password: '', 
+          confirmPassword: '' 
+        }));
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Error en registro:', error);
+      setError('Error inesperado. Intenta de nuevo.');
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        password: '', 
+        confirmPassword: '' 
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    return (
-        <>
-            {title ? (
-                <Typography fontWeight="700" variant="h2" mb={1}>
-                    {title}
-                </Typography>
-            ) : null}
+  // Manejar cambios en inputs
+  const handleInputChange = (field: keyof typeof formData) => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  };
 
-            {subtext}
+  // Toggle visibilidad de contraseñas
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
-            {/* Mostrar alertas */}
-            {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
-                </Alert>
+  const isLoading = isSubmitting || authLoading;
+
+  return (
+    <>
+      {title ? (
+        <Typography fontWeight="700" variant="h2" mb={1}>
+          {title}
+        </Typography>
+      ) : null}
+
+      {subtext}
+
+      {/* Mostrar alertas */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Stack spacing={2}>
+          {/* Campo Nombre */}
+          <Box>
+            <Typography 
+              variant="subtitle1"
+              fontWeight={600} 
+              component="label" 
+              htmlFor='name' 
+              mb="5px"
+            >
+              Nombre Completo *
+            </Typography>
+            <CustomTextField 
+              id="name" 
+              variant="outlined" 
+              fullWidth 
+              value={formData.name}
+              onChange={handleInputChange('name')}
+              disabled={isLoading}
+              error={!!formErrors.name}
+              helperText={formErrors.name}
+              placeholder="Juan Pérez"
+              autoComplete="name"
+            />
+          </Box>
+
+          {/* Campo Email */}
+          <Box>
+            <Typography 
+              variant="subtitle1"
+              fontWeight={600} 
+              component="label" 
+              htmlFor='email' 
+              mb="5px"
+            >
+              Email *
+            </Typography>
+            <CustomTextField 
+              id="email" 
+              type="email"
+              variant="outlined" 
+              fullWidth 
+              value={formData.email}
+              onChange={handleInputChange('email')}
+              disabled={isLoading}
+              error={!!formErrors.email}
+              helperText={formErrors.email}
+              placeholder="admin@ejemplo.com"
+              autoComplete="email"
+            />
+          </Box>
+
+          {/* Campo Contraseña */}
+          <Box>
+            <Typography 
+              variant="subtitle1"
+              fontWeight={600} 
+              component="label" 
+              htmlFor='password' 
+              mb="5px"
+            >
+              Contraseña *
+            </Typography>
+            <CustomTextField 
+              id="password" 
+              type={showPassword ? "text" : "password"}
+              variant="outlined" 
+              fullWidth 
+              value={formData.password}
+              onChange={handleInputChange('password')}
+              disabled={isLoading}
+              error={!!formErrors.password}
+              helperText={formErrors.password || "Mínimo 6 caracteres, debe contener al menos una letra"}
+              placeholder="Contraseña segura"
+              autoComplete="new-password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={togglePasswordVisibility}
+                      edge="end"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+
+          {/* Campo Confirmar Contraseña */}
+          <Box>
+            <Typography 
+              variant="subtitle1"
+              fontWeight={600} 
+              component="label" 
+              htmlFor='confirmPassword' 
+              mb="5px"
+            >
+              Confirmar Contraseña *
+            </Typography>
+            <CustomTextField 
+              id="confirmPassword" 
+              type={showConfirmPassword ? "text" : "password"}
+              variant="outlined" 
+              fullWidth 
+              value={formData.confirmPassword}
+              onChange={handleInputChange('confirmPassword')}
+              disabled={isLoading}
+              error={!!formErrors.confirmPassword}
+              helperText={formErrors.confirmPassword}
+              placeholder="Repite tu contraseña"
+              autoComplete="new-password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle confirm password visibility"
+                      onClick={toggleConfirmPasswordVisibility}
+                      edge="end"
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+
+          {/* Botón de envío */}
+          <Button 
+            color="primary" 
+            variant="contained" 
+            size="large" 
+            fullWidth 
+            type="submit"
+            disabled={isLoading}
+            sx={{ 
+              py: 1.5,
+              fontSize: '1rem',
+              fontWeight: 600
+            }}
+          >
+            {isLoading ? (
+              <>
+                <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                Creando cuenta...
+              </>
+            ) : (
+              'Crear Cuenta de Administrador'
             )}
+          </Button>
+        </Stack>
+      </Box>
 
-            {success && (
-                <Alert severity="success" sx={{ mb: 2 }}>
-                    {success}
-                </Alert>
-            )}
-
-            <Box component="form" onSubmit={handleSubmit}>
-                <Stack mb={3}>
-                    <Typography 
-                        variant="subtitle1"
-                        fontWeight={600} 
-                        component="label" 
-                        htmlFor='name' 
-                        mb="5px"
-                    >
-                        Nombre Completo
-                    </Typography>
-                    <CustomTextField 
-                        id="name" 
-                        variant="outlined" 
-                        fullWidth 
-                        value={formData.name}
-                        onChange={handleChange('name')}
-                        disabled={loading}
-                        required
-                    />
-
-                    <Typography 
-                        variant="subtitle1"
-                        fontWeight={600} 
-                        component="label" 
-                        htmlFor='email' 
-                        mb="5px" 
-                        mt="25px"
-                    >
-                        Email Address
-                    </Typography>
-                    <CustomTextField 
-                        id="email" 
-                        type="email"
-                        variant="outlined" 
-                        fullWidth 
-                        value={formData.email}
-                        onChange={handleChange('email')}
-                        disabled={loading}
-                        required
-                    />
-
-                    <Typography 
-                        variant="subtitle1"
-                        fontWeight={600} 
-                        component="label" 
-                        htmlFor='password' 
-                        mb="5px" 
-                        mt="25px"
-                    >
-                        Password
-                    </Typography>
-                    <CustomTextField 
-                        id="password" 
-                        type="password"
-                        variant="outlined" 
-                        fullWidth 
-                        value={formData.password}
-                        onChange={handleChange('password')}
-                        disabled={loading}
-                        required
-                        helperText="Mínimo 6 caracteres"
-                    />
-
-                    <Typography 
-                        variant="subtitle1"
-                        fontWeight={600} 
-                        component="label" 
-                        htmlFor='confirmPassword' 
-                        mb="5px" 
-                        mt="25px"
-                    >
-                        Confirmar Password
-                    </Typography>
-                    <CustomTextField 
-                        id="confirmPassword" 
-                        type="password"
-                        variant="outlined" 
-                        fullWidth 
-                        value={formData.confirmPassword}
-                        onChange={handleChange('confirmPassword')}
-                        disabled={loading}
-                        required
-                    />
-                </Stack>
-                
-                <Button 
-                    color="primary" 
-                    variant="contained" 
-                    size="large" 
-                    fullWidth 
-                    type="submit"
-                    disabled={loading}
-                    sx={{ mb: 2 }}
-                >
-                    {loading ? (
-                        <CircularProgress size={24} color="inherit" />
-                    ) : (
-                        'Sign Up'
-                    )}
-                </Button>
-            </Box>
-            {subtitle}
-        </>
-    );
+      {subtitle}
+    </>
+  );
 };
 
 export default AuthRegister;
