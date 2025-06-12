@@ -190,6 +190,8 @@ export const ReviewsCard: React.FC<ReviewsCardProps> = ({
           renderItem={(review) => {
             const sentiment = getRatingSentiment(review.calificacion);
             
+
+            console.log(`Review ${review.contenido}: calificacion=${review.calificacion}, Number=${Number(review.calificacion)}`);
             return (
               <List.Item 
                 style={{ 
@@ -234,10 +236,11 @@ export const ReviewsCard: React.FC<ReviewsCardProps> = ({
                     {/* Rating + Sentiment */}
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ marginBottom: '4px' }}>
-                        <Rate 
-                          disabled 
-                          value={review.calificacion} 
+                        <Rate  
+                          disabled
+                          value={Number(review.calificacion)} 
                           style={{ fontSize: '14px' }}
+                          key={`rate-${review.id}`}
                         />
                       </div>
                       <Tag 
